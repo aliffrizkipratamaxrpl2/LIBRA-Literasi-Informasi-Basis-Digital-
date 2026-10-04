@@ -146,6 +146,24 @@ app.post("/api/v1/login", validate(Schema.login), async (req, res) => {
   }
 });
 
+app.get("/api/v1/profile", authenticateToken, async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      "SELECT id, email, img FROM users WHERE id = ?",
+      [req.user.id]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: "user not found" });
+    }
+
+    res.json({ user: rows[0] });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "error to get profile data" });
+  }
+});
+
 app.listen(3000, () => {
   console.log('Server started on port 3000');
 });
