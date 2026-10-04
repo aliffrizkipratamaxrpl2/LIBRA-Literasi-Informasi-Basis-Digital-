@@ -100,6 +100,25 @@ const authenticateToken = (req, res, next) => {
   }
 };
 
+// Endpoint 1: Post Books
+app.post("/api/v1/post-books", upload.single("cover"), validate(Schema.books), async (req, res) => {
+  if (req.file) {
+    req.body.cover = req.file.path;
+  }
+  const { category_id, title, writer, cover, synopsis, content } = req.body;
+  try {
+    await pool.query(
+      "INSERT INTO books (category_id, title, writer, cover, synopsis, content) VALUES (?, ?, ?, ?, ?, ?)",
+      [category_id, title, writer, cover, synopsis, content]
+    );
+    res.json({ success: true, message: "successfully post book" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "failed to post book" });
+  }
+});
+
+// Endpoint 2: Edit Profile
 app.put("/api/v1/users/:id", authenticateToken, upload.single("img"), validate(Schema.users), async (req, res) => {
   if (req.file) {
     req.body.img = req.file.path;
@@ -120,9 +139,12 @@ app.put("/api/v1/users/:id", authenticateToken, upload.single("img"), validate(S
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "error to update profile data" });
+  }
+});
+
 app.get("/api/v1/books", async (req, res) => {
   try {
-    const [rows] = await pool.query("SELECT * FROM books")
+    const [rows] = await pool.query("SELECT * FROM books");
     if(rows.length === 0) {
       return res.status(404).json({ error: "book not found" });
     }
@@ -131,11 +153,11 @@ app.get("/api/v1/books", async (req, res) => {
     console.error(error);
     res.status(500).json({ error: "error to get books data" });
   }
-})
+});
 
 app.get("/api/v1/plans", async (req, res) => {
   try {
-    const [rows] = await pool.query("SELECT * FROM plans")
+    const [rows] = await pool.query("SELECT * FROM plans");
     if(rows.length === 0) {
       return res.status(404).json({ error: "plans not found" });
     }
@@ -144,11 +166,11 @@ app.get("/api/v1/plans", async (req, res) => {
     console.error(error);
     res.status(500).json({ error: "error to get plans data" });
   }
-})
+});
 
 app.get("/api/v1/categories", async (req, res) => {
   try {
-    const [rows] = await pool.query("SELECT * FROM categories")
+    const [rows] = await pool.query("SELECT * FROM categories");
     if(rows.length === 0) {
       return res.status(404).json({ error: "category not found" });
     }
@@ -157,7 +179,7 @@ app.get("/api/v1/categories", async (req, res) => {
     console.error(error);
     res.status(500).json({ error: "error to get category list" });
   }
-})
+});
 
 app.listen(3000, () => {
   console.log('Server started on port 3000');
