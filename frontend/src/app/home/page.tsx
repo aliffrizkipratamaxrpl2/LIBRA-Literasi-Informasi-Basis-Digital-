@@ -1,14 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Navbar, Footer, PageContainer } from "@/components/layout";
 import BookCard from "@/components/books/BookCard";
 import SectionHeader from "@/components/navigation/SectionHeader";
+import { getBooks, getCategories } from "@/lib/api";
+import type { Book } from "@/types";
 import { Search, Flame } from "lucide-react";
 
-const categories = [
+const defaultCategories = [
   "All",
   "Fiction",
   "Self-Dev",
@@ -36,7 +38,7 @@ const continueReadingBooks = [
   },
 ];
 
-const recommendedBooks = [
+const defaultRecommendedBooks: Book[] = [
   {
     id: "lessons-of-time",
     title: "Lessons of Time",
@@ -68,8 +70,23 @@ const recommendedBooks = [
 ];
 
 export default function HomePage() {
+  const [categories, setCategories] = useState<string[]>(defaultCategories);
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
+  const [recommendedBooks, setRecommendedBooks] = useState<Book[]>(defaultRecommendedBooks);
+
+  useEffect(() => {
+    async function loadData() {
+      const [apiBooks, apiCats] = await Promise.all([getBooks(), getCategories()]);
+      if (apiBooks && apiBooks.length > 0) {
+        setRecommendedBooks(apiBooks.slice(0, 4));
+      }
+      if (apiCats && apiCats.length > 0) {
+        setCategories(["All", ...apiCats.map((c) => c.category)]);
+      }
+    }
+    loadData();
+  }, []);
 
   return (
     <>
@@ -121,7 +138,7 @@ export default function HomePage() {
             })}
           </div>
 
-          {/* Main 2-Column Dashboard Grid: Left Content (68%) + Right Widget (32%) */}
+          {/* Main 2-Column Dashboard Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-10 items-start">
             {/* Left Column: Continue Reading + Recommended */}
             <div className="space-y-12">
@@ -179,7 +196,14 @@ export default function HomePage() {
                 />
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-5">
                   {recommendedBooks.map((book) => (
-                    <BookCard key={book.id} {...book} />
+                    <BookCard
+                      key={book.id}
+                      id={book.id}
+                      title={book.title}
+                      author={book.author}
+                      rating={book.rating ?? 4.8}
+                      cover={book.cover || "/images/books/echo-of-silence.jpeg"}
+                    />
                   ))}
                 </div>
               </div>
@@ -191,7 +215,7 @@ export default function HomePage() {
                 Your October Reading Stats
               </h2>
 
-              {/* 4 Stat Tiles (2x2) */}
+              {/* 4 Stat Tiles */}
               <div className="grid grid-cols-2 gap-3.5">
                 <div className="bg-[#f4efe6] rounded-2xl p-4">
                   <p className="text-2xl font-bold text-[#1c1917]">4</p>

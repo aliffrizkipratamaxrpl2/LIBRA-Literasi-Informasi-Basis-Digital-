@@ -1,9 +1,11 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Navbar, Footer, PageContainer } from "@/components/layout";
 import BookCard from "@/components/books/BookCard";
 import SectionHeader from "@/components/navigation/SectionHeader";
+import { getCategories } from "@/lib/api";
 import {
   BookOpen,
   Heart,
@@ -17,9 +19,20 @@ import {
   Activity,
   User,
   Feather,
+  LucideIcon,
 } from "lucide-react";
 
-const allCategories = [
+interface CategoryItem {
+  id?: string | number;
+  name: string;
+  count: string;
+  slug: string;
+  icon: LucideIcon;
+  iconBg: string;
+  iconColor: string;
+}
+
+const defaultCategories: CategoryItem[] = [
   {
     name: "Fiction",
     count: "3,240 titles",
@@ -157,6 +170,30 @@ const popularInFiction = [
 ];
 
 export default function CategoriesPage() {
+  const [categories, setCategories] = useState<CategoryItem[]>(defaultCategories);
+
+  useEffect(() => {
+    async function load() {
+      const data = await getCategories();
+      if (data && data.length > 0) {
+        const mapped: CategoryItem[] = data.map((c, i) => {
+          const fallback = defaultCategories[i % defaultCategories.length];
+          return {
+            id: c.id,
+            name: c.category,
+            count: fallback.count,
+            slug: c.category.toLowerCase().replace(/\s+/g, "-"),
+            icon: fallback.icon,
+            iconBg: fallback.iconBg,
+            iconColor: fallback.iconColor,
+          };
+        });
+        setCategories(mapped);
+      }
+    }
+    load();
+  }, []);
+
   return (
     <>
       <Navbar variant="authenticated" />
@@ -174,9 +211,9 @@ export default function CategoriesPage() {
             </p>
           </div>
 
-          {/* 12 Categories Grid (4 columns x 3 rows) */}
+          {/* Categories Grid */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-5 mb-24">
-            {allCategories.map((cat) => (
+            {categories.map((cat) => (
               <Link
                 key={cat.name}
                 href={`/browse?category=${cat.slug}`}
@@ -208,7 +245,7 @@ export default function CategoriesPage() {
               actionHref="/browse?category=fiction"
             />
 
-            {/* 5 Book Cards Grid */}
+            {/* Book Cards Grid */}
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-6">
               {popularInFiction.map((book) => (
                 <BookCard key={book.id} {...book} />

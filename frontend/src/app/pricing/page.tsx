@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Navbar, Footer, PageContainer } from "@/components/layout";
+import { getPlans } from "@/lib/api";
+import type { BackendPlan } from "@/types";
 import { Check, Plus, Minus } from "lucide-react";
 
 interface FaqItem {
@@ -10,6 +12,70 @@ interface FaqItem {
   question: string;
   answer: string;
 }
+
+interface PlanCardData {
+  id: string | number;
+  name: string;
+  price: number;
+  period: string;
+  description: string;
+  features: string[];
+  cta: string;
+  popular?: boolean;
+}
+
+const defaultPlans: PlanCardData[] = [
+  {
+    id: "free",
+    name: "Free",
+    price: 0,
+    period: "/month",
+    description: "Discover classic literature and explore basic community logs.",
+    features: [
+      "Access to 500+ free digital books",
+      "Standard reader customization tools",
+      "Active device sync (1 device maximum)",
+      "Ad-supported interface log",
+      "Standard community forum access",
+    ],
+    cta: "Get Started Free",
+    popular: false,
+  },
+  {
+    id: "reader",
+    name: "Reader",
+    price: 9.99,
+    period: "/month",
+    description: "Dive deep with our complete catalog, offline mode, and audiobooks.",
+    features: [
+      "Unlimited catalog access (10K+ titles)",
+      "Completely ad-free cozy environment",
+      "Sync up to 3 devices simultaneously",
+      "Offline reading with local downloads",
+      "Full annotations, notes, and highlights",
+      "Cozy audiobooks integrated seamlessly",
+    ],
+    cta: "Start 14-Day Free Trial",
+    popular: true,
+  },
+  {
+    id: "premium",
+    name: "Premium",
+    price: 19.99,
+    period: "/month",
+    description: "Elegantly designed for ultimate literary enthusiasts and reading logs.",
+    features: [
+      "Everything included in Reader tier",
+      "Sync unlimited devices simultaneously",
+      "Early access to newly curated editions",
+      "Premium priority support SLA",
+      "Seamless digital family logs (5 members)",
+      "Personalized monthly reading spotlight",
+    ],
+    cta: "Start 14-Day Free Trial",
+    popular: false,
+  },
+];
 
 const faqs: FaqItem[] = [
   {
@@ -84,7 +150,31 @@ const comparisonRows = [
 ];
 
 export default function PricingPage() {
+  const [plans, setPlans] = useState<PlanCardData[]>(defaultPlans);
   const [openFaq, setOpenFaq] = useState<string | null>("faq-1");
+
+  useEffect(() => {
+    async function load() {
+      const data: BackendPlan[] | null = await getPlans();
+      if (data && data.length > 0) {
+        const mapped: PlanCardData[] = data.map((p, i) => {
+          const fallback = defaultPlans[i % defaultPlans.length];
+          return {
+            id: p.id,
+            name: p.plan,
+            price: Number(p.price),
+            period: `/${p.cycle || "month"}`,
+            description: p.descriptions || fallback.description,
+            features: fallback.features,
+            cta: fallback.cta,
+            popular: p.plan.toLowerCase().includes("reader") || fallback.popular,
+          };
+        });
+        setPlans(mapped);
+      }
+    }
+    load();
+  }, []);
 
   const toggleFaq = (id: string) => {
     setOpenFaq((prev) => (prev === id ? null : id));
@@ -107,159 +197,73 @@ export default function PricingPage() {
             </p>
           </div>
 
-          {/* 3 Pricing Cards Grid */}
+          {/* Pricing Cards Grid */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch mb-28 max-w-6xl mx-auto">
-            {/* Free Plan */}
-            <div className="bg-white rounded-3xl border border-[#e6e0d6] p-8 flex flex-col justify-between shadow-xs hover:shadow-md transition-shadow">
-              <div className="space-y-6">
-                <div>
-                  <h3 className="text-lg font-bold text-[#1c1917]">Free</h3>
-                  <div className="flex items-baseline gap-1 mt-3">
-                    <span className="text-4xl font-bold text-[#1c1917]">$0</span>
-                    <span className="text-xs text-[#79716b]">/month</span>
+            {plans.map((plan) => (
+              <div
+                key={plan.id}
+                className={`bg-white rounded-3xl p-8 flex flex-col justify-between transition-all ${
+                  plan.popular
+                    ? "border-2 border-[#8c695b] shadow-md relative"
+                    : "border border-[#e6e0d6] shadow-xs hover:shadow-md"
+                }`}
+              >
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-bold text-[#1c1917]">
+                      {plan.name}
+                    </h3>
+                    {plan.popular && (
+                      <span className="px-3 py-1 rounded-full bg-[#f4efe6] text-[#8c695b] text-[10px] font-bold tracking-wider uppercase border border-[#8c695b]/20">
+                        MOST POPULAR
+                      </span>
+                    )}
                   </div>
-                  <p className="text-xs text-[#79716b] mt-3 leading-relaxed">
-                    Discover classic literature and explore basic community logs.
-                  </p>
-                </div>
 
-                <div className="border-t border-[#e6e0d6]" />
-
-                <ul className="space-y-3.5 text-xs text-[#1c1917]">
-                  {[
-                    "Access to 500+ free digital books",
-                    "Standard reader customization tools",
-                    "Active device sync (1 device maximum)",
-                    "Ad-supported interface log",
-                    "Standard community forum access",
-                  ].map((feat, i) => (
-                    <li key={i} className="flex items-start gap-2.5">
-                      <Check
-                        size={15}
-                        className="text-[#8c695b] shrink-0 mt-0.5"
-                        strokeWidth={2.5}
-                      />
-                      <span>{feat}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              <div className="pt-8">
-                <Link
-                  href="/register"
-                  className="w-full py-3 px-6 text-xs font-semibold rounded-full border border-[#8c695b] text-[#8c695b] hover:bg-[#f4efe6] transition-colors flex items-center justify-center text-center"
-                >
-                  Get Started Free
-                </Link>
-              </div>
-            </div>
-
-            {/* Reader Plan (Featured / Most Popular) */}
-            <div className="bg-white rounded-3xl border-2 border-[#8c695b] p-8 flex flex-col justify-between shadow-md relative">
-              <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-bold text-[#1c1917]">Reader</h3>
-                  <span className="px-3 py-1 rounded-full bg-[#f4efe6] text-[#8c695b] text-[10px] font-bold tracking-wider uppercase">
-                    MOST POPULAR
-                  </span>
-                </div>
-
-                <div>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-4xl font-bold text-[#1c1917]">
-                      $9.99
-                    </span>
-                    <span className="text-xs text-[#79716b]">/month</span>
+                  <div>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-4xl font-bold text-[#1c1917]">
+                        ${plan.price === 0 ? "0" : plan.price.toFixed(2)}
+                      </span>
+                      <span className="text-xs text-[#79716b]">
+                        {plan.period}
+                      </span>
+                    </div>
+                    <p className="text-xs text-[#79716b] mt-3 leading-relaxed">
+                      {plan.description}
+                    </p>
                   </div>
-                  <p className="text-xs text-[#79716b] mt-3 leading-relaxed">
-                    Dive deep with our complete catalog, offline mode, and
-                    audiobooks.
-                  </p>
+
+                  <div className="border-t border-[#e6e0d6]" />
+
+                  <ul className="space-y-3.5 text-xs text-[#1c1917]">
+                    {plan.features.map((feat, i) => (
+                      <li key={i} className="flex items-start gap-2.5">
+                        <Check
+                          size={15}
+                          className="text-[#8c695b] shrink-0 mt-0.5"
+                          strokeWidth={2.5}
+                        />
+                        <span>{feat}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
 
-                <div className="border-t border-[#e6e0d6]" />
-
-                <ul className="space-y-3.5 text-xs text-[#1c1917]">
-                  {[
-                    "Unlimited catalog access (10K+ titles)",
-                    "Completely ad-free cozy environment",
-                    "Sync up to 3 devices simultaneously",
-                    "Offline reading with local downloads",
-                    "Full annotations, notes, and highlights",
-                    "Cozy audiobooks integrated seamlessly",
-                  ].map((feat, i) => (
-                    <li key={i} className="flex items-start gap-2.5">
-                      <Check
-                        size={15}
-                        className="text-[#8c695b] shrink-0 mt-0.5"
-                        strokeWidth={2.5}
-                      />
-                      <span>{feat}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              <div className="pt-8">
-                <Link
-                  href="/register"
-                  className="w-full py-3 px-6 text-xs font-semibold rounded-full bg-[#8c695b] text-white hover:bg-[#7b594b] transition-colors shadow-sm flex items-center justify-center text-center"
-                >
-                  Start 14-Day Free Trial
-                </Link>
-              </div>
-            </div>
-
-            {/* Premium Plan */}
-            <div className="bg-white rounded-3xl border border-[#e6e0d6] p-8 flex flex-col justify-between shadow-xs hover:shadow-md transition-shadow">
-              <div className="space-y-6">
-                <div>
-                  <h3 className="text-lg font-bold text-[#1c1917]">Premium</h3>
-                  <div className="flex items-baseline gap-1 mt-3">
-                    <span className="text-4xl font-bold text-[#1c1917]">
-                      $19.99
-                    </span>
-                    <span className="text-xs text-[#79716b]">/month</span>
-                  </div>
-                  <p className="text-xs text-[#79716b] mt-3 leading-relaxed">
-                    Elegantly designed for ultimate literary enthusiasts and
-                    reading logs.
-                  </p>
+                <div className="pt-8">
+                  <Link
+                    href="/register"
+                    className={`w-full py-3 px-6 text-xs font-semibold rounded-full transition-colors flex items-center justify-center text-center ${
+                      plan.popular
+                        ? "bg-[#8c695b] text-white hover:bg-[#7b594b] shadow-sm"
+                        : "border border-[#8c695b] text-[#8c695b] hover:bg-[#f4efe6]"
+                    }`}
+                  >
+                    {plan.cta}
+                  </Link>
                 </div>
-
-                <div className="border-t border-[#e6e0d6]" />
-
-                <ul className="space-y-3.5 text-xs text-[#1c1917]">
-                  {[
-                    "Everything included in Reader tier",
-                    "Sync unlimited devices simultaneously",
-                    "Early access to newly curated editions",
-                    "Premium priority support SLA",
-                    "Seamless digital family logs (5 members)",
-                    "Personalized monthly reading spotlight",
-                  ].map((feat, i) => (
-                    <li key={i} className="flex items-start gap-2.5">
-                      <Check
-                        size={15}
-                        className="text-[#8c695b] shrink-0 mt-0.5"
-                        strokeWidth={2.5}
-                      />
-                      <span>{feat}</span>
-                    </li>
-                  ))}
-                </ul>
               </div>
-
-              <div className="pt-8">
-                <Link
-                  href="/register"
-                  className="w-full py-3 px-6 text-xs font-semibold rounded-full border border-[#8c695b] text-[#8c695b] hover:bg-[#f4efe6] transition-colors flex items-center justify-center text-center"
-                >
-                  Start 14-Day Free Trial
-                </Link>
-              </div>
-            </div>
+            ))}
           </div>
 
           {/* Comparison Table Section */}

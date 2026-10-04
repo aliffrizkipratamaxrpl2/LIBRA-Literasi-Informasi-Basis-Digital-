@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Navbar, Footer, PageContainer } from "@/components/layout";
 import BookCard from "@/components/books/BookCard";
+import { getBooks } from "@/lib/api";
+import type { Book } from "@/types";
 import { Search, X, ChevronDown, Check } from "lucide-react";
 
 interface FilterState {
@@ -97,11 +99,22 @@ const browseBooks = [
 ];
 
 export default function BrowsePage() {
+  const [books, setBooks] = useState<Book[]>(browseBooks);
   const [searchQuery, setSearchQuery] = useState("Design History and Systems");
   const [filters, setFilters] = useState<FilterState>(initialFilters);
   const [sortBy, setSortBy] = useState("Popularity");
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+
+  useEffect(() => {
+    async function load() {
+      const apiBooks = await getBooks();
+      if (apiBooks && apiBooks.length > 0) {
+        setBooks(apiBooks);
+      }
+    }
+    load();
+  }, []);
 
   const toggleFilter = (
     type: keyof FilterState,
@@ -375,8 +388,15 @@ export default function BrowsePage() {
 
               {/* Book Grid: 4 columns */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                {browseBooks.map((book) => (
-                  <BookCard key={book.id} {...book} />
+                {books.map((book) => (
+                  <BookCard
+                    key={book.id}
+                    id={book.id}
+                    title={book.title}
+                    author={book.author}
+                    rating={book.rating ?? 4.8}
+                    cover={book.cover || "/images/books/echo-of-silence.jpeg"}
+                  />
                 ))}
               </div>
 
