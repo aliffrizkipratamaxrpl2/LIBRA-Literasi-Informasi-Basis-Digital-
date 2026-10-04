@@ -1,9 +1,12 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Navbar, Footer, PageContainer } from "@/components/layout";
 import BookCard from "@/components/books/BookCard";
 import SectionHeader from "@/components/navigation/SectionHeader";
+import { getCategories, getBooks } from "@/lib/api";
+import type { Book } from "@/types";
 import {
   BookOpen,
   Heart,
@@ -17,9 +20,20 @@ import {
   Activity,
   User,
   Feather,
+  LucideIcon,
 } from "lucide-react";
 
-const allCategories = [
+interface CategoryItem {
+  id?: string | number;
+  name: string;
+  count: string;
+  slug: string;
+  icon: LucideIcon;
+  iconBg: string;
+  iconColor: string;
+}
+
+const defaultCategories: CategoryItem[] = [
   {
     name: "Fiction",
     count: "3,240 titles",
@@ -118,12 +132,13 @@ const allCategories = [
   },
 ];
 
-const popularInFiction = [
+const defaultPopularInFiction: Book[] = [
   {
     id: "echo-of-silence",
     title: "The Echo of Silence",
     author: "Marcia Sterling",
     rating: 4.8,
+    category: "Fiction",
     cover: "/images/books/echo-of-silence.jpeg",
   },
   {
@@ -131,6 +146,7 @@ const popularInFiction = [
     title: "Beyond the Grid",
     author: "Klaus Van Der Meer",
     rating: 4.9,
+    category: "Fiction",
     cover: "/images/books/beyond-the-grid.jpeg",
   },
   {
@@ -138,6 +154,7 @@ const popularInFiction = [
     title: "Midsummer Wanderlust",
     author: "Celia Harlow",
     rating: 4.6,
+    category: "Fiction",
     cover: "/images/books/midsummer-wanderlust.jpeg",
   },
   {
@@ -145,6 +162,7 @@ const popularInFiction = [
     title: "The Algorithms of Joy",
     author: "Dr. Arthur Pendelton",
     rating: 4.7,
+    category: "Fiction",
     cover: "/images/books/algorithms-of-joy.jpeg",
   },
   {
@@ -152,11 +170,53 @@ const popularInFiction = [
     title: "Contours of Memory",
     author: "Siddharth Mehta",
     rating: 4.5,
+    category: "Fiction",
     cover: "/images/books/contours-of-memory.jpeg",
   },
 ];
 
 export default function CategoriesPage() {
+  const [categories, setCategories] = useState<CategoryItem[]>(defaultCategories);
+  const [popularInFiction, setPopularInFiction] = useState<Book[]>(defaultPopularInFiction);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function load() {
+      setIsLoading(true);
+      const [catsData, booksData] = await Promise.all([
+        getCategories(),
+        getBooks(),
+      ]);
+
+      if (catsData && catsData.length > 0) {
+        const mapped: CategoryItem[] = catsData.map((c, i) => {
+          const fallback = defaultCategories[i % defaultCategories.length];
+          return {
+            id: c.id,
+            name: c.category,
+            count: fallback.count,
+            slug: c.category.toLowerCase().replace(/\s+/g, "-"),
+            icon: fallback.icon,
+            iconBg: fallback.iconBg,
+            iconColor: fallback.iconColor,
+          };
+        });
+        setCategories(mapped);
+      }
+
+      if (booksData && booksData.length > 0) {
+        const fictionBooks = booksData.filter(
+          (b) => b.category?.toLowerCase() === "fiction"
+        );
+        setPopularInFiction(
+          fictionBooks.length >= 3 ? fictionBooks.slice(0, 5) : booksData.slice(0, 5)
+        );
+      }
+      setIsLoading(false);
+    }
+    load();
+  }, []);
+
   return (
     <>
       <Navbar variant="authenticated" />
@@ -174,12 +234,12 @@ export default function CategoriesPage() {
             </p>
           </div>
 
-          {/* 12 Categories Grid (4 columns x 3 rows) */}
+          {/* Categories Grid */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-5 mb-24">
-            {allCategories.map((cat) => (
+            {categories.map((cat) => (
               <Link
                 key={cat.name}
-                href={`/browse?category=${cat.slug}`}
+                href={`/browse?category=${encodeURIComponent(cat.name)}`}
                 className="group flex flex-col p-6 rounded-2xl border border-[#e6e0d6] bg-white hover:shadow-md hover:border-[#d4cfc6] transition-all"
               >
                 <div
@@ -205,15 +265,33 @@ export default function CategoriesPage() {
               title="Popular in Fiction"
               description="The novels currently captivating our reading community"
               actionLabel="Explore Fiction Genre"
-              actionHref="/browse?category=fiction"
+              actionHref={`/browse?category=${encodeURIComponent("Fiction")}`}
             />
 
-            {/* 5 Book Cards Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-6">
-              {popularInFiction.map((book) => (
-                <BookCard key={book.id} {...book} />
-              ))}
-            </div>
+            {/* Book Cards Grid */}
+            {isLoading ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-6">
+                {[...Array(5)].map((_, i) => (
+                  <div
+                    key={i}
+                    className="animate-pulse bg-[#f4efe6] rounded-2xl aspect-[3/4]"
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-6">
+                {popularInFiction.map((book) => (
+                  <BookCard
+                    key={book.id}
+                    id={book.id}
+                    title={book.title}
+                    author={book.author}
+                    rating={book.rating ?? 4.8}
+                    cover={book.cover || "/images/books/echo-of-silence.jpeg"}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         </PageContainer>
       </main>

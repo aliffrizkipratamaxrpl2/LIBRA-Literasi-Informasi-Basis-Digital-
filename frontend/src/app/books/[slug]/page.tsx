@@ -1,101 +1,17 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Navbar, Footer, PageContainer } from "@/components/layout";
 import BookCard from "@/components/books/BookCard";
 import Rating from "@/components/books/Rating";
+import SectionHeader from "@/components/navigation/SectionHeader";
+import { getBooks } from "@/lib/api";
+import { findDetailedBook, detailedBooksDatabase, DetailedBook } from "@/data/mockBooks";
+import { isBookSaved, toggleSaveBook, subscribeSavedBooks } from "@/lib/savedBooks";
+import type { Book } from "@/types";
 import { Headphones, BookOpen, Bookmark, Star } from "lucide-react";
-
-interface BookDetailData {
-  title: string;
-  author: string;
-  publishedYear: string;
-  rating: number;
-  categories: string[];
-  cover: string;
-  synopsis: string;
-  audiobookDuration: string;
-  details: {
-    pages: string;
-    language: string;
-    publisher: string;
-    publishedDate: string;
-    isbn: string;
-    format: string;
-  };
-}
-
-const defaultBook: BookDetailData = {
-  title: "Designing the Humane",
-  author: "Clementine Dupont",
-  publishedYear: "2021",
-  rating: 4.8,
-  categories: ["Design", "Technology", "Non-Fiction"],
-  cover: "/images/books/design-systems.jpeg",
-  synopsis:
-    "An outstanding study on industrial and aesthetic design choices that have reshaped our interface with life over centuries. From original typographies and editorial grid alignments, to industrial machinery and modern digital components, Dupont showcases how \"humanity\" is encoded directly into physical and interactive artifacts.",
-  audiobookDuration: "8h 45m narration",
-  details: {
-    pages: "340 pages",
-    language: "English",
-    publisher: "Cozy Craft Press",
-    publishedDate: "October 12, 2021",
-    isbn: "978-3-16-148410-0",
-    format: "eBook, Hardcover, Audio",
-  },
-};
-
-const reviews = [
-  {
-    id: "1",
-    name: "Ikan Cupang",
-    avatar: "/images/avatars/ikan-cupang.jpeg",
-    time: "2 weeks ago",
-    rating: 5,
-    text: "Genuinely changed the way I think about everyday interfaces. Dupont writes with extreme clarity and elegance. The cozy book design perfectly mirrors her philosophy.",
-  },
-  {
-    id: "2",
-    name: "Mie Ayam",
-    avatar: "/images/avatars/mie-ayam.jpeg",
-    time: "1 month ago",
-    rating: 4,
-    text: "A very insightful exploration of how aesthetic crafts shape human communities. I particularly loved the chapters on modern typographies and spatial grid architectures.",
-  },
-];
-
-const relatedBooks = [
-  {
-    id: "contours-of-memory",
-    title: "Contours of Memory",
-    author: "Siddharth Mehta",
-    rating: 4.5,
-    cover: "/images/books/contours-of-memory.jpeg",
-  },
-  {
-    id: "echoes-of-renaissance",
-    title: "Echoes of the Renaissance",
-    author: "Elena Rostova",
-    rating: 4.8,
-    cover: "/images/books/echoes-of-renaissance.jpeg",
-  },
-  {
-    id: "design-systems",
-    title: "Design Systems",
-    author: "Clementine Dupont",
-    rating: 4.9,
-    cover: "/images/books/design-systems.jpeg",
-  },
-  {
-    id: "cozy-cabin",
-    title: "Cozy Cabin Living",
-    author: "Arthur Wood",
-    rating: 4.7,
-    cover: "/images/books/cozy-cabin.jpeg",
-  },
-];
 
 export default function BookDetailPage({
   params,
@@ -103,10 +19,110 @@ export default function BookDetailPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = use(params);
-  const [isSaved, setIsSaved] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(false);
 
-  const book = defaultBook;
+  // Initialize with fallback or matched mock book
+  const fallbackBook = findDetailedBook(slug) || detailedBooksDatabase["designing-the-humane"];
+  const [book, setBook] = useState<DetailedBook>(fallbackBook);
+  const [relatedBooks, setRelatedBooks] = useState<Book[]>([]);
+  const [isSaved, setIsSaved] = useState<boolean>(() =>
+    isBookSaved(slug || fallbackBook.id)
+  );
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Listen for real-time save updates
+  useEffect(() => {
+    const unsubscribe = subscribeSavedBooks(() => {
+      const bookId = book.id || slug;
+      setIsSaved(isBookSaved(bookId));
+    });
+    return unsubscribe;
+  }, [book.id, slug]);
+
+  useEffect(() => {
+    async function loadBookData() {
+      setIsLoading(true);
+
+      // 1. Check local catalog first
+      const localMatch = findDetailedBook(slug);
+      let activeBook: DetailedBook = localMatch || {
+        ...detailedBooksDatabase["designing-the-humane"],
+        id: slug,
+        title: decodeURIComponent(slug).replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+      };
+
+      // 2. Fetch from backend API to overlay live data
+      const apiBooks = await getBooks();
+      if (apiBooks && apiBooks.length > 0) {
+        const backendMatch = apiBooks.find(
+          (b) =>
+            String(b.id) === String(slug) ||
+            b.title.toLowerCase().replace(/[^a-z0-9]+/g, "-") === slug.toLowerCase() ||
+            slug.toLowerCase().includes(b.title.toLowerCase().replace(/[^a-z0-9]+/g, "-"))
+        );
+
+        if (backendMatch) {
+          activeBook = {
+            id: String(backendMatch.id),
+            title: backendMatch.title,
+            author: backendMatch.author,
+            publishedYear: activeBook.publishedYear || "2024",
+            rating: backendMatch.rating ?? activeBook.rating ?? 4.8,
+            categories: backendMatch.category
+              ? [backendMatch.category]
+              : activeBook.categories || ["Literature"],
+            cover: backendMatch.cover || activeBook.cover,
+            synopsis:
+              backendMatch.synopsis ||
+              activeBook.synopsis ||
+              `A remarkable work by ${backendMatch.author}, exploring deep perspectives on literature, technology, and storytelling.`,
+            audiobookDuration: activeBook.audiobookDuration || "8h 15m narration",
+            details: {
+              ...activeBook.details,
+              publisher: activeBook.details.publisher || "LIBRA Digital Press",
+            },
+            reviews: activeBook.reviews,
+          };
+        }
+
+        // Set related books from other backend or catalog books
+        const others = apiBooks.filter((b) => String(b.id) !== String(activeBook.id)).slice(0, 4);
+        setRelatedBooks(others);
+      } else {
+        // Fallback related books
+        const mockOthers = Object.values(detailedBooksDatabase)
+          .filter((b) => b.id !== activeBook.id)
+          .slice(0, 4)
+          .map((b) => ({
+            id: b.id,
+            title: b.title,
+            author: b.author,
+            rating: b.rating,
+            cover: b.cover,
+            category: b.categories[0],
+          }));
+        setRelatedBooks(mockOthers);
+      }
+
+      setBook(activeBook);
+      setIsSaved(isBookSaved(activeBook.id || slug));
+      setIsLoading(false);
+    }
+
+    loadBookData();
+  }, [slug]);
+
+  const handleToggleSave = () => {
+    const nextSaved = toggleSaveBook({
+      id: book.id || slug,
+      title: book.title,
+      author: book.author,
+      rating: book.rating,
+      cover: book.cover,
+      category: book.categories[0],
+    });
+    setIsSaved(nextSaved);
+  };
 
   return (
     <>
@@ -120,7 +136,7 @@ export default function BookDetailPage({
             <div className="space-y-5 max-w-sm mx-auto lg:max-w-none w-full">
               <div className="relative aspect-[3/4] rounded-3xl overflow-hidden shadow-2xl shadow-[#8c695b]/15 border border-[#e6e0d6]">
                 <Image
-                  src={book.cover}
+                  src={book.cover || "/images/books/echo-of-silence.jpeg"}
                   alt={book.title}
                   fill
                   className="object-cover"
@@ -178,7 +194,7 @@ export default function BookDetailPage({
                 <p className="text-xs sm:text-sm text-[#79716b] leading-relaxed">
                   {isExpanded
                     ? book.synopsis +
-                      " This comprehensive edition brings together full historical documentation, comparative sketches, and interviews with contemporary vanguard designers."
+                      " This comprehensive edition brings together full historical documentation, comparative sketches, and interviews with contemporary vanguard authors."
                     : book.synopsis}
                   <button
                     onClick={() => setIsExpanded(!isExpanded)}
@@ -255,7 +271,7 @@ export default function BookDetailPage({
               {/* Action Buttons */}
               <div className="flex flex-wrap items-center gap-4 pt-3">
                 <Link
-                  href={`/read/${slug || "designing-the-humane"}`}
+                  href={`/read/${book.id || slug}`}
                   className="flex items-center gap-2 px-8 py-3.5 text-xs font-semibold bg-[#8c695b] text-white rounded-full hover:bg-[#7b594b] transition-colors shadow-sm"
                 >
                   <BookOpen size={15} />
@@ -263,7 +279,7 @@ export default function BookDetailPage({
                 </Link>
 
                 <button
-                  onClick={() => setIsSaved(!isSaved)}
+                  onClick={handleToggleSave}
                   className={`flex items-center gap-2 px-7 py-3.5 text-xs font-semibold rounded-full border transition-all ${
                     isSaved
                       ? "bg-[#f4efe6] border-[#8c695b] text-[#8c695b]"
@@ -287,72 +303,95 @@ export default function BookDetailPage({
             </h2>
 
             <div className="space-y-6">
-              {reviews.map((review) => (
-                <div
-                  key={review.id}
-                  className="bg-white rounded-3xl border border-[#e6e0d6] p-6 sm:p-7 shadow-xs space-y-3"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3.5">
-                      <div className="relative w-11 h-11 rounded-full overflow-hidden border border-[#e6e0d6] shrink-0">
-                        <Image
-                          src={review.avatar}
-                          alt={review.name}
-                          fill
-                          className="object-cover"
-                          sizes="50px"
-                        />
-                      </div>
-                      <div>
-                        <h3 className="text-xs font-bold text-[#1c1917]">
-                          {review.name}
-                        </h3>
-                        <p className="text-[11px] text-[#a8a29e] mt-0.5">
-                          {review.time}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Review Rating Stars */}
-                    <div className="flex items-center gap-1">
-                      <div className="flex items-center gap-0.5">
-                        {[1, 2, 3, 4, 5].map((star) => (
-                          <Star
-                            key={star}
-                            size={13}
-                            className={
-                              star <= review.rating
-                                ? "fill-[#e59934] text-[#e59934]"
-                                : "fill-transparent text-[#d4cfc6]"
-                            }
+              {(book.reviews || detailedBooksDatabase["designing-the-humane"].reviews || []).map(
+                (review) => (
+                  <div
+                    key={review.id}
+                    className="bg-white rounded-3xl border border-[#e6e0d6] p-6 sm:p-7 shadow-xs space-y-3"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3.5">
+                        <div className="relative w-11 h-11 rounded-full overflow-hidden border border-[#e6e0d6] shrink-0">
+                          <Image
+                            src={review.avatar}
+                            alt={review.name}
+                            fill
+                            className="object-cover"
+                            sizes="50px"
                           />
-                        ))}
+                        </div>
+                        <div>
+                          <h3 className="text-xs font-bold text-[#1c1917]">
+                            {review.name}
+                          </h3>
+                          <p className="text-[11px] text-[#a8a29e] mt-0.5">
+                            {review.time}
+                          </p>
+                        </div>
                       </div>
-                      <span className="text-xs font-bold text-[#1c1917] ml-1">
-                        {review.rating}
-                      </span>
-                    </div>
-                  </div>
 
-                  <p className="text-xs sm:text-sm text-[#79716b] leading-relaxed pt-1">
-                    {review.text}
-                  </p>
-                </div>
-              ))}
+                      {/* Review Rating Stars */}
+                      <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-0.5">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <Star
+                              key={star}
+                              size={13}
+                              className={
+                                star <= review.rating
+                                  ? "fill-[#e59934] text-[#e59934]"
+                                  : "fill-transparent text-[#d4cfc6]"
+                              }
+                            />
+                          ))}
+                        </div>
+                        <span className="text-xs font-bold text-[#1c1917] ml-1">
+                          {review.rating}
+                        </span>
+                      </div>
+                    </div>
+
+                    <p className="text-xs sm:text-sm text-[#79716b] leading-relaxed pt-1">
+                      {review.text}
+                    </p>
+                  </div>
+                )
+              )}
             </div>
           </div>
 
           {/* Section: Related Books */}
           <div className="pt-8 border-t border-[#e6e0d6]">
-            <h2 className="text-2xl font-bold text-[#1c1917] tracking-tight mb-8">
-              Related Books
-            </h2>
+            <SectionHeader
+              title="Related Books"
+              description="More titles recommended by the LIBRA editorial staff"
+              actionLabel="View All"
+              actionHref="/browse"
+            />
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
-              {relatedBooks.map((book) => (
-                <BookCard key={book.id} {...book} />
-              ))}
-            </div>
+            {isLoading ? (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
+                {[...Array(4)].map((_, i) => (
+                  <div
+                    key={i}
+                    className="animate-pulse bg-[#f4efe6] rounded-2xl aspect-[3/4]"
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
+                {relatedBooks.map((b) => (
+                  <BookCard
+                    key={b.id}
+                    id={b.id}
+                    title={b.title}
+                    author={b.author}
+                    rating={b.rating ?? 4.8}
+                    cover={b.cover || "/images/books/echo-of-silence.jpeg"}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         </PageContainer>
       </main>

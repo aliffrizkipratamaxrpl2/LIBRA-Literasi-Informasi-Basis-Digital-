@@ -1,8 +1,11 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Navbar, Footer, PageContainer } from "@/components/layout";
 import BookCard from "@/components/books/BookCard";
 import SectionHeader from "@/components/navigation/SectionHeader";
+import { getBooks, getCategories } from "@/lib/api";
+import type { Book } from "@/types";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -63,6 +66,31 @@ const stats = [
 ];
 
 export default function LandingPage() {
+  const [trending, setTrending] = useState<Book[]>(trendingBooks);
+  const [recent, setRecent] = useState<Book[]>(recentlyAdded);
+  const [categoryList, setCategoryList] = useState(categories);
+
+  useEffect(() => {
+    async function loadData() {
+      const [apiBooks, apiCats] = await Promise.all([getBooks(), getCategories()]);
+      if (apiBooks && apiBooks.length > 0) {
+        setTrending(apiBooks.slice(0, 6));
+        setRecent([...apiBooks].reverse().slice(0, 6));
+      }
+      if (apiCats && apiCats.length > 0) {
+        const mapped = apiCats.map((c, i) => {
+          const fallback = categories[i % categories.length];
+          return {
+            name: c.category,
+            count: fallback.count,
+            icon: fallback.icon,
+          };
+        });
+        setCategoryList(mapped);
+      }
+    }
+    loadData();
+  }, []);
   return (
     <>
       {/* Landing Navbar with Beranda, Tentang Kami, Hubungi Kami, Login, Register */}
@@ -152,8 +180,15 @@ export default function LandingPage() {
               actionHref="/browse"
             />
             <div className="grid grid-cols-6 gap-6">
-              {trendingBooks.map((book) => (
-                <BookCard key={book.id} {...book} />
+              {trending.map((book) => (
+                <BookCard
+                  key={book.id}
+                  id={book.id}
+                  title={book.title}
+                  author={book.author}
+                  rating={book.rating ?? 4.8}
+                  cover={book.cover || "/images/books/echo-of-silence.jpeg"}
+                />
               ))}
             </div>
           </PageContainer>
@@ -168,7 +203,7 @@ export default function LandingPage() {
               actionLabel=""
             />
             <div className="grid grid-cols-4 gap-5">
-              {categories.map((cat) => (
+              {categoryList.map((cat) => (
                 <Link
                   key={cat.name}
                   href="/categories"
@@ -201,8 +236,15 @@ export default function LandingPage() {
               actionHref="/browse"
             />
             <div className="grid grid-cols-6 gap-6">
-              {recentlyAdded.map((book, i) => (
-                <BookCard key={`${book.id}-${i}`} {...book} />
+              {recent.map((book, i) => (
+                <BookCard
+                  key={`${book.id}-${i}`}
+                  id={book.id}
+                  title={book.title}
+                  author={book.author}
+                  rating={book.rating ?? 4.8}
+                  cover={book.cover || "/images/books/echo-of-silence.jpeg"}
+                />
               ))}
             </div>
           </PageContainer>
@@ -292,10 +334,11 @@ export default function LandingPage() {
 
                   <ul className="space-y-3.5 text-xs text-[#1c1917]">
                     {[
-                      "Akses ke 500+ buku digital pilihan",
-                      "Kustomisasi standar tampilan pembaca",
-                      "Sinkronisasi 1 perangkat aktif",
-                      "Akses forum diskusi komunitas",
+                      "Akses ke 500+ buku digital gratis",
+                      "Fitur kustomisasi pembaca standar",
+                      "Sinkronisasi aktif hingga 1 perangkat",
+                      "Tampilan dengan iklan",
+                      "Akses standar ke forum komunitas",
                     ].map((feat, i) => (
                       <li key={i} className="flex items-start gap-2.5">
                         <Check
@@ -351,12 +394,17 @@ export default function LandingPage() {
 
                   <ul className="space-y-3.5 text-xs text-[#1c1917]">
                     {[
-                      "Akses tak terbatas (10.000+ judul)",
-                      "Bebas iklan sepenuhnya",
+                      "Lencana terverifikasi",
+                      "Custom warna latar belakang nama pengguna",
+                      "Akses katalog tanpa batas (10K+ judul)",
+                      "Lingkungan membaca bebas iklan",
                       "Sinkronisasi hingga 3 perangkat",
-                      "Download offline untuk membaca di mana saja",
-                      "Anotasi lengkap, highlight & catatan",
-                      "Integrasi audiobook berkualitas tinggi",
+                      "Membaca buku secara offline",
+                      "Fitur anotasi, catatan, dan highlight",
+                      "Audiobook terintegrasi",
+                      "Tema membaca eksklusif",
+                      "Rekomendasi buku yang dipersonalisasi",
+                      "Prioritas akses ke koleksi buku terbaru",
                     ].map((feat, i) => (
                       <li key={i} className="flex items-start gap-2.5">
                         <Check
@@ -406,12 +454,17 @@ export default function LandingPage() {
 
                   <ul className="space-y-3.5 text-xs text-[#1c1917]">
                     {[
-                      "Semua fitur pada paket Reader",
+                      "Semua benefit dari paket Reader",
+                      "Custom warna border foto profil",
+                      "Banner yang bisa di ubah sesuka hati",
                       "Sinkronisasi perangkat tanpa batas",
-                      "Akses awal ke edisi & kurasi terbaru",
-                      "Dukungan prioritas tim LIBRA",
-                      "Paket akun keluarga (hingga 5 anggota)",
-                      "Kurasi bulanan personalisasi",
+                      "Akses lebih awal ke koleksi eksklusif",
+                      "Dukungan prioritas untuk pengguna Premium",
+                      "Berbagi akses hingga 5 anggota keluarga",
+                      "Rekomendasi bacaan eksklusif setiap bulan",
+                      "Koleksi buku Premium eksklusif",
+                      "Badge Premium eksklusif di profil",
+                      "Pengalaman membaca tanpa batas dan bebas iklan",
                     ].map((feat, i) => (
                       <li key={i} className="flex items-start gap-2.5">
                         <Check

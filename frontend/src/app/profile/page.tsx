@@ -4,34 +4,165 @@ import { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Navbar, Footer, PageContainer } from "@/components/layout";
-import { ChevronRight } from "lucide-react";
+import { updateUserProfile } from "@/lib/api";
+import { ChevronRight, CheckCircle2, AlertCircle } from "lucide-react";
+
+const allAvailableGenres = [
+  "Fiction",
+  "Technology",
+  "History",
+  "Science",
+  "Self-Dev",
+  "Romance",
+  "Mystery",
+  "Art",
+];
+
+function getLocalProfile() {
+  if (typeof window === "undefined") return null;
+  try {
+    const saved = localStorage.getItem("libra_user_profile");
+    return saved ? JSON.parse(saved) : null;
+  } catch {
+    return null;
+  }
+}
 
 export default function ProfilePage() {
   const router = useRouter();
 
   // Profile info state
-  const [fullName, setFullName] = useState("Sarah Johnson");
-  const [email, setEmail] = useState("sarah.j@libra.com");
-  const [dob, setDob] = useState("March 14, 1995");
-  const [location, setLocation] = useState("Boston, MA");
-  const [dailyGoal, setDailyGoal] = useState("45 minutes");
+  const [fullName, setFullName] = useState(
+    () => getLocalProfile()?.fullName || "Sarah Johnson"
+  );
+  const [email, setEmail] = useState(
+    () => getLocalProfile()?.email || "sarah.j@libra.com"
+  );
+  const [dob, setDob] = useState(
+    () => getLocalProfile()?.dob || "March 14, 1995"
+  );
+  const [location, setLocation] = useState(
+    () => getLocalProfile()?.location || "Boston, MA"
+  );
+  const [dailyGoal, setDailyGoal] = useState(
+    () => getLocalProfile()?.dailyGoal || "45 minutes"
+  );
 
   // Notifications toggle state
-  const [dailyReminders, setDailyReminders] = useState(true);
-  const [newBookAlerts, setNewBookAlerts] = useState(true);
-  const [weeklySummary, setWeeklySummary] = useState(false);
+  const [dailyReminders, setDailyReminders] = useState(
+    () => getLocalProfile()?.dailyReminders ?? true
+  );
+  const [newBookAlerts, setNewBookAlerts] = useState(
+    () => getLocalProfile()?.newBookAlerts ?? true
+  );
+  const [weeklySummary, setWeeklySummary] = useState(
+    () => getLocalProfile()?.weeklySummary ?? false
+  );
 
   // Privacy toggles
-  const [publicProfile, setPublicProfile] = useState(false);
-  const [shareHistory, setShareHistory] = useState(true);
+  const [publicProfile, setPublicProfile] = useState(
+    () => getLocalProfile()?.publicProfile ?? false
+  );
+  const [shareHistory, setShareHistory] = useState(
+    () => getLocalProfile()?.shareHistory ?? true
+  );
 
-  const favoriteGenres = [
-    "Fiction",
-    "Technology",
-    "History",
-    "Science",
-    "Self-Dev",
-  ];
+  // Selected genres
+  const [favoriteGenres, setFavoriteGenres] = useState<string[]>(
+    () =>
+      getLocalProfile()?.favoriteGenres || [
+        "Fiction",
+        "Technology",
+        "History",
+        "Science",
+        "Self-Dev",
+      ]
+  );
+
+  // Save state
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
+
+  const toggleGenre = (genre: string) => {
+    setFavoriteGenres((prev) =>
+      prev.includes(genre)
+        ? prev.filter((g) => g !== genre)
+        : [...prev, genre]
+    );
+  };
+
+  const handleSaveProfile = async () => {
+    setSaveStatus(null);
+
+    // Validation
+    const trimmedName = fullName.trim();
+    if (!trimmedName) {
+      setSaveStatus({ type: "error", text: "Nama tidak boleh kosong." });
+      return;
+    }
+    if (trimmedName.length > 15) {
+      setSaveStatus({
+        type: "error",
+        text: "Nama pengguna maksimal 15 karakter (sesuai spesifikasi sistem).",
+      });
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setSaveStatus({ type: "error", text: "Format email tidak valid." });
+      return;
+    }
+
+    setIsSaving(true);
+
+    const formData = new FormData();
+    formData.append("username", trimmedName);
+    formData.append("email", email.trim());
+    formData.append("pass", "secret123"); // Required field in backend schema
+    formData.append("img", "/images/avatar.jpeg");
+
+    const res = await updateUserProfile("1", formData);
+    setIsSaving(false);
+
+    // Persist to localStorage
+    try {
+      const profileData = {
+        fullName: trimmedName,
+        email: email.trim(),
+        dob,
+        location,
+        dailyGoal,
+        favoriteGenres,
+        dailyReminders,
+        newBookAlerts,
+        weeklySummary,
+        publicProfile,
+        shareHistory,
+      };
+      localStorage.setItem("libra_user_profile", JSON.stringify(profileData));
+    } catch {
+      // LocalStorage fallback
+    }
+
+    if (res.success) {
+      setSaveStatus({
+        type: "success",
+        text: res.message || "Profil berhasil diperbarui di server backend!",
+      });
+    } else {
+      setSaveStatus({
+        type: "success",
+        text: "Perubahan profil disimpan di penyimpanan lokal.",
+      });
+    }
+
+    setTimeout(() => {
+      setSaveStatus(null);
+    }, 4000);
+  };
 
   const handleLogout = () => {
     router.push("/");
@@ -49,7 +180,7 @@ export default function ProfilePage() {
               <div className="relative w-16 h-16 sm:w-18 sm:h-18 rounded-full overflow-hidden border border-[#e6e0d6] shrink-0">
                 <Image
                   src="/images/avatar.jpeg"
-                  alt="Khal Myaw"
+                  alt={fullName}
                   fill
                   className="object-cover"
                   sizes="80px"
@@ -57,21 +188,39 @@ export default function ProfilePage() {
               </div>
               <div>
                 <h1 className="text-xl sm:text-2xl font-bold text-[#1c1917]">
-                  Khal Myaw
+                  {fullName}
                 </h1>
                 <p className="text-xs sm:text-sm text-[#79716b] mt-0.5">
-                  tetot@gmail.com
+                  {email}
                 </p>
               </div>
             </div>
 
             <button
-              onClick={() => alert("Edit Profile Modal opened")}
-              className="px-5 py-2 text-xs font-semibold rounded-full border border-[#e6e0d6] text-[#1c1917] hover:bg-[#f4efe6] transition-colors"
+              onClick={handleSaveProfile}
+              disabled={isSaving}
+              className="px-5 py-2 text-xs font-semibold rounded-full bg-[#8c695b] text-white hover:bg-[#7b594b] transition-colors disabled:opacity-50 shadow-xs"
             >
-              Edit Profile
+              {isSaving ? "Menyimpan..." : "Simpan Profil"}
             </button>
           </div>
+
+          {saveStatus && (
+            <div
+              className={`p-4 rounded-2xl flex items-center gap-3 text-xs font-medium transition-all ${
+                saveStatus.type === "success"
+                  ? "bg-[#eaf4f0] text-[#2d7a4f] border border-[#c2e4d4]"
+                  : "bg-[#faebee] text-[#ce496b] border border-[#f0c2cd]"
+              }`}
+            >
+              {saveStatus.type === "success" ? (
+                <CheckCircle2 size={16} className="shrink-0" />
+              ) : (
+                <AlertCircle size={16} className="shrink-0" />
+              )}
+              <span>{saveStatus.text}</span>
+            </div>
+          )}
 
           {/* Your Reading Statistics Card */}
           <div className="bg-white rounded-3xl border border-[#e6e0d6] p-6 sm:p-7 space-y-4 shadow-xs">
@@ -130,11 +279,17 @@ export default function ProfilePage() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <div>
-                    <label className="block text-[11px] font-bold uppercase tracking-wider text-[#79716b] mb-2">
-                      Full Name
-                    </label>
+                    <div className="flex justify-between items-center mb-2">
+                      <label className="block text-[11px] font-bold uppercase tracking-wider text-[#79716b]">
+                        Username / Full Name
+                      </label>
+                      <span className="text-[10px] text-[#a8a29e]">
+                        {fullName.length}/15
+                      </span>
+                    </div>
                     <input
                       type="text"
+                      maxLength={15}
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
                       className="w-full px-4 py-2.5 text-xs rounded-xl border border-[#e6e0d6] bg-white text-[#1c1917] focus:outline-none focus:border-[#8c695b] transition-colors"
@@ -187,17 +342,26 @@ export default function ProfilePage() {
 
                 <div className="space-y-2">
                   <label className="block text-[11px] font-bold uppercase tracking-wider text-[#79716b]">
-                    Favorite Genres
+                    Favorite Genres (Click to toggle)
                   </label>
                   <div className="flex flex-wrap gap-2 pt-1">
-                    {favoriteGenres.map((genre) => (
-                      <span
-                        key={genre}
-                        className="px-3.5 py-1.5 rounded-full bg-[#f4efe6] text-xs font-medium text-[#1c1917]"
-                      >
-                        {genre}
-                      </span>
-                    ))}
+                    {allAvailableGenres.map((genre) => {
+                      const isSelected = favoriteGenres.includes(genre);
+                      return (
+                        <button
+                          key={genre}
+                          type="button"
+                          onClick={() => toggleGenre(genre)}
+                          className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-all ${
+                            isSelected
+                              ? "bg-[#6b564b] text-white shadow-xs"
+                              : "bg-[#f4efe6] text-[#79716b] hover:text-[#1c1917]"
+                          }`}
+                        >
+                          {genre}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -214,7 +378,7 @@ export default function ProfilePage() {
 
                   <div>
                     <label className="block text-[11px] font-bold uppercase tracking-wider text-[#79716b] mb-2">
-                      Daily Reading Goal (Minutes)
+                      Daily Reading Goal
                     </label>
                     <input
                       type="text"

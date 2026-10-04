@@ -6,6 +6,8 @@ export type Book = {
   cover?: string;
   category?: string;
   progress?: number;
+  synopsis?: string;
+  content?: string;
 };
 
 export type BookDetail = Book & {

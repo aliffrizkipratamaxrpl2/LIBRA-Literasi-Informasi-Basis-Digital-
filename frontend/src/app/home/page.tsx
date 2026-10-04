@@ -1,14 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Navbar, Footer, PageContainer } from "@/components/layout";
 import BookCard from "@/components/books/BookCard";
 import SectionHeader from "@/components/navigation/SectionHeader";
-import { Search, Flame } from "lucide-react";
+import { getBooks, getCategories } from "@/lib/api";
+import type { Book } from "@/types";
+import { Search, Flame, X } from "lucide-react";
 
-const categories = [
+const defaultCategories = [
   "All",
   "Fiction",
   "Self-Dev",
@@ -36,12 +39,13 @@ const continueReadingBooks = [
   },
 ];
 
-const recommendedBooks = [
+const defaultRecommendedBooks: Book[] = [
   {
     id: "lessons-of-time",
     title: "Lessons of Time",
     author: "Prof. Alistair Finch",
     rating: 4.9,
+    category: "History",
     cover: "/images/books/lessons-of-time.jpeg",
   },
   {
@@ -49,6 +53,7 @@ const recommendedBooks = [
     title: "Whispers of Kyoto",
     author: "Sayuri Haruki",
     rating: 4.8,
+    category: "Fiction",
     cover: "/images/books/whispers-of-kyoto.jpeg",
   },
   {
@@ -56,6 +61,7 @@ const recommendedBooks = [
     title: "Designing the Humane",
     author: "Clementine Dupont",
     rating: 4.7,
+    category: "Technology",
     cover: "/images/books/organic-forms.jpeg",
   },
   {
@@ -63,13 +69,67 @@ const recommendedBooks = [
     title: "The Cozy Cabin Guide",
     author: "Arthur Wood",
     rating: 4.6,
+    category: "Self-Dev",
     cover: "/images/books/cozy-cabin-guide.jpeg",
   },
 ];
 
 export default function HomePage() {
+  const router = useRouter();
+  const [categories, setCategories] = useState<string[]>(defaultCategories);
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
+  const [allBooks, setAllBooks] = useState<Book[]>(defaultRecommendedBooks);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadData() {
+      setIsLoading(true);
+      const [apiBooks, apiCats] = await Promise.all([
+        getBooks(),
+        getCategories(),
+      ]);
+
+      if (apiBooks && apiBooks.length > 0) {
+        setAllBooks(apiBooks);
+      }
+      if (apiCats && apiCats.length > 0) {
+        setCategories(["All", ...apiCats.map((c) => c.category)]);
+      }
+      setIsLoading(false);
+    }
+    loadData();
+  }, []);
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && searchQuery.trim()) {
+      router.push(`/browse?q=${encodeURIComponent(searchQuery.trim())}`);
+    }
+  };
+
+  const displayedBooks = useMemo(() => {
+    let list = [...allBooks];
+
+    // Filter by selected category pill
+    if (selectedCategory !== "All") {
+      list = list.filter((b) =>
+        b.category?.toLowerCase().includes(selectedCategory.toLowerCase())
+      );
+    }
+
+    // Filter by search query if any
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      list = list.filter(
+        (b) =>
+          b.title.toLowerCase().includes(q) ||
+          b.author.toLowerCase().includes(q) ||
+          (b.category && b.category.toLowerCase().includes(q))
+      );
+    }
+
+    return list.slice(0, 4);
+  }, [allBooks, selectedCategory, searchQuery]);
 
   return (
     <>
@@ -95,9 +155,18 @@ export default function HomePage() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search books, authors, categories, or quotes..."
+                onKeyDown={handleSearchKeyDown}
+                placeholder="Search books, authors, categories, or quotes... (Press Enter to search catalog)"
                 className="w-full text-sm bg-transparent text-[#1c1917] placeholder:text-[#a8a29e] focus:outline-none"
               />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="p-1 rounded-full text-[#79716b] hover:text-[#1c1917] hover:bg-[#f4efe6] transition-colors"
+                >
+                  <X size={16} />
+                </button>
+              )}
             </div>
           </div>
 
@@ -121,7 +190,7 @@ export default function HomePage() {
             })}
           </div>
 
-          {/* Main 2-Column Dashboard Grid: Left Content (68%) + Right Widget (32%) */}
+          {/* Main 2-Column Dashboard Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-10 items-start">
             {/* Left Column: Continue Reading + Recommended */}
             <div className="space-y-12">
@@ -173,15 +242,47 @@ export default function HomePage() {
               {/* Recommended For You */}
               <div>
                 <SectionHeader
-                  title="Recommended For You"
+                  title={
+                    selectedCategory === "All"
+                      ? "Recommended For You"
+                      : `Recommended in ${selectedCategory}`
+                  }
                   actionLabel="View All"
-                  actionHref="/browse"
+                  actionHref={
+                    selectedCategory === "All"
+                      ? "/browse"
+                      : `/browse?category=${encodeURIComponent(selectedCategory)}`
+                  }
                 />
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-5">
-                  {recommendedBooks.map((book) => (
-                    <BookCard key={book.id} {...book} />
-                  ))}
-                </div>
+                {isLoading ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-5">
+                    {[...Array(4)].map((_, i) => (
+                      <div
+                        key={i}
+                        className="animate-pulse bg-[#f4efe6] rounded-2xl aspect-[3/4]"
+                      />
+                    ))}
+                  </div>
+                ) : displayedBooks.length > 0 ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-5">
+                    {displayedBooks.map((book) => (
+                      <BookCard
+                        key={book.id}
+                        id={book.id}
+                        title={book.title}
+                        author={book.author}
+                        rating={book.rating ?? 4.8}
+                        cover={book.cover || "/images/books/echo-of-silence.jpeg"}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-8 text-center bg-white rounded-2xl border border-[#e6e0d6]">
+                    <p className="text-xs text-[#79716b]">
+                      Belum ada rekomendasi untuk kategori &ldquo;{selectedCategory}&rdquo;.
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -191,7 +292,7 @@ export default function HomePage() {
                 Your October Reading Stats
               </h2>
 
-              {/* 4 Stat Tiles (2x2) */}
+              {/* 4 Stat Tiles */}
               <div className="grid grid-cols-2 gap-3.5">
                 <div className="bg-[#f4efe6] rounded-2xl p-4">
                   <p className="text-2xl font-bold text-[#1c1917]">4</p>
