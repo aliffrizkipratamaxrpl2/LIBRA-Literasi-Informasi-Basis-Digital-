@@ -191,6 +191,19 @@ app.get("/api/v1/plans", async (req, res) => {
   }
 })
 
+app.get("/api/v1/categories", async (req, res) => {
+  try {
+    const [rows] = await pool.query("SELECT * FROM categories")
+    if(rows.length === 0) {
+      return res.status(404).json({ error: "category not found" });
+    }
+    res.json({ categories: rows });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "error to get category list" });
+  }
+})
+
 app.listen(3000, () => {
   console.log('Server started on port 3000');
 });
