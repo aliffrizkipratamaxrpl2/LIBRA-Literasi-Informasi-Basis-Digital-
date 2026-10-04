@@ -100,6 +100,26 @@ const authenticateToken = (req, res, next) => {
   }
 };
 
+app.put("/api/v1/users/:id", authenticateToken, upload.single("img"), validate(Schema.users), async (req, res) => {
+  if (req.file) {
+    req.body.img = req.file.path;
+  }
+  try {
+    const { id } = req.params;
+    const { username, pass, img } = req.body;
+    const [rows] = await pool.query(
+      "UPDATE users SET username = ?, pass = ?, img = ? WHERE id = ?",
+      [username, pass, img, id]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: "user not found" });
+    }
+
+    res.json({ success: true, message: "successfully update profile" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "error to update profile data" });
 app.get("/api/v1/books", async (req, res) => {
   try {
     const [rows] = await pool.query("SELECT * FROM books")
