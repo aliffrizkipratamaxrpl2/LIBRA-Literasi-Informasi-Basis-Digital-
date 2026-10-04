@@ -23,6 +23,7 @@ import {
   Phone,
   ShieldCheck,
   Compass,
+  Check,
 } from "lucide-react";
 
 const trendingBooks = [
@@ -251,6 +252,193 @@ export default function LandingPage() {
                 <p className="text-sm text-[#79716b] leading-relaxed">
                   Menyediakan ribuan judul bebas biaya bagi pelajar dan komunitas agar literasi digital dapat diakses merata di mana saja.
                 </p>
+              </div>
+            </div>
+          </PageContainer>
+        </section>
+
+        {/* Section: Detail Paket Harga */}
+        <section id="paket-harga" className="py-24 bg-white border-b border-[#e6e0d6]">
+          <PageContainer>
+            <div className="max-w-2xl mx-auto text-center space-y-3.5 mb-16">
+              <span className="text-xs font-bold uppercase tracking-widest text-[#8c695b]">
+                Pilihan Berlangganan
+              </span>
+              <h2 className="text-3xl md:text-4xl font-serif font-bold text-[#1c1917] tracking-tight">
+                Pilih Paket Membaca Sesuai Kebutuhan Anda
+              </h2>
+              <p className="text-sm md:text-base text-[#79716b] leading-relaxed">
+                Nikmati akses ribuan karya sastra dan fitur pembaca digital premium. Masuk atau daftarkan akun Anda untuk mulai membaca.
+              </p>
+            </div>
+
+            {/* 3 Pricing Cards Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch max-w-6xl mx-auto">
+              {/* Free Plan */}
+              <div className="bg-[#f9f6ef] rounded-3xl border border-[#e6e0d6] p-8 flex flex-col justify-between shadow-xs hover:shadow-md transition-shadow">
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="text-lg font-bold text-[#1c1917]">Free</h3>
+                    <div className="flex items-baseline gap-1 mt-3">
+                      <span className="text-4xl font-bold text-[#1c1917]">$0</span>
+                      <span className="text-xs text-[#79716b]">/bulan</span>
+                    </div>
+                    <p className="text-xs text-[#79716b] mt-3 leading-relaxed">
+                      Jelajahi literatur klasik dan fitur komunitas dasar tanpa biaya.
+                    </p>
+                  </div>
+
+                  <div className="border-t border-[#e6e0d6]" />
+
+                  <ul className="space-y-3.5 text-xs text-[#1c1917]">
+                    {[
+                      "Akses ke 500+ buku digital pilihan",
+                      "Kustomisasi standar tampilan pembaca",
+                      "Sinkronisasi 1 perangkat aktif",
+                      "Akses forum diskusi komunitas",
+                    ].map((feat, i) => (
+                      <li key={i} className="flex items-start gap-2.5">
+                        <Check
+                          size={15}
+                          className="text-[#8c695b] shrink-0 mt-0.5"
+                          strokeWidth={2.5}
+                        />
+                        <span>{feat}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div className="pt-8 space-y-2">
+                  <Link
+                    href="/register"
+                    className="w-full py-3 px-6 text-xs font-semibold rounded-full border border-[#8c695b] text-[#8c695b] hover:bg-[#f4efe6] transition-colors flex items-center justify-center text-center"
+                  >
+                    Daftar Akun Gratis
+                  </Link>
+                  <p className="text-[11px] text-[#79716b] text-center">
+                    Sudah punya akun?{" "}
+                    <Link href="/login" className="text-[#8c695b] font-semibold hover:underline">
+                      Login
+                    </Link>
+                  </p>
+                </div>
+              </div>
+
+              {/* Reader Plan (Featured / Most Popular) */}
+              <div className="bg-[#f9f6ef] rounded-3xl border-2 border-[#8c695b] p-8 flex flex-col justify-between shadow-md relative">
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-bold text-[#1c1917]">Reader</h3>
+                    <span className="px-3 py-1 rounded-full bg-[#f4efe6] text-[#8c695b] text-[10px] font-bold tracking-wider uppercase border border-[#8c695b]/20">
+                      PALING POPULER
+                    </span>
+                  </div>
+
+                  <div>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-4xl font-bold text-[#1c1917]">
+                        $9.99
+                      </span>
+                      <span className="text-xs text-[#79716b]">/bulan</span>
+                    </div>
+                    <p className="text-xs text-[#79716b] mt-3 leading-relaxed">
+                      Akses tak terbatas ke seluruh katalog buku, mode offline, dan audiobook.
+                    </p>
+                  </div>
+
+                  <div className="border-t border-[#e6e0d6]" />
+
+                  <ul className="space-y-3.5 text-xs text-[#1c1917]">
+                    {[
+                      "Akses tak terbatas (10.000+ judul)",
+                      "Bebas iklan sepenuhnya",
+                      "Sinkronisasi hingga 3 perangkat",
+                      "Download offline untuk membaca di mana saja",
+                      "Anotasi lengkap, highlight & catatan",
+                      "Integrasi audiobook berkualitas tinggi",
+                    ].map((feat, i) => (
+                      <li key={i} className="flex items-start gap-2.5">
+                        <Check
+                          size={15}
+                          className="text-[#8c695b] shrink-0 mt-0.5"
+                          strokeWidth={2.5}
+                        />
+                        <span>{feat}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div className="pt-8 space-y-2">
+                  <Link
+                    href="/register"
+                    className="w-full py-3 px-6 text-xs font-semibold rounded-full bg-[#8c695b] text-white hover:bg-[#7b594b] transition-colors shadow-sm flex items-center justify-center text-center"
+                  >
+                    Mulai Uji Coba 14 Hari
+                  </Link>
+                  <p className="text-[11px] text-[#79716b] text-center">
+                    Sudah berlangganan?{" "}
+                    <Link href="/login" className="text-[#8c695b] font-semibold hover:underline">
+                      Login
+                    </Link>
+                  </p>
+                </div>
+              </div>
+
+              {/* Premium Plan */}
+              <div className="bg-[#f9f6ef] rounded-3xl border border-[#e6e0d6] p-8 flex flex-col justify-between shadow-xs hover:shadow-md transition-shadow">
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="text-lg font-bold text-[#1c1917]">Premium</h3>
+                    <div className="flex items-baseline gap-1 mt-3">
+                      <span className="text-4xl font-bold text-[#1c1917]">
+                        $19.99
+                      </span>
+                      <span className="text-xs text-[#79716b]">/bulan</span>
+                    </div>
+                    <p className="text-xs text-[#79716b] mt-3 leading-relaxed">
+                      Pengalaman membaca terlengkap untuk penikmat literatur sejati & keluarga.
+                    </p>
+                  </div>
+
+                  <div className="border-t border-[#e6e0d6]" />
+
+                  <ul className="space-y-3.5 text-xs text-[#1c1917]">
+                    {[
+                      "Semua fitur pada paket Reader",
+                      "Sinkronisasi perangkat tanpa batas",
+                      "Akses awal ke edisi & kurasi terbaru",
+                      "Dukungan prioritas tim LIBRA",
+                      "Paket akun keluarga (hingga 5 anggota)",
+                      "Kurasi bulanan personalisasi",
+                    ].map((feat, i) => (
+                      <li key={i} className="flex items-start gap-2.5">
+                        <Check
+                          size={15}
+                          className="text-[#8c695b] shrink-0 mt-0.5"
+                          strokeWidth={2.5}
+                        />
+                        <span>{feat}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div className="pt-8 space-y-2">
+                  <Link
+                    href="/register"
+                    className="w-full py-3 px-6 text-xs font-semibold rounded-full border border-[#8c695b] text-[#8c695b] hover:bg-[#f4efe6] transition-colors flex items-center justify-center text-center"
+                  >
+                    Mulai Uji Coba 14 Hari
+                  </Link>
+                  <p className="text-[11px] text-[#79716b] text-center">
+                    Sudah punya akun?{" "}
+                    <Link href="/login" className="text-[#8c695b] font-semibold hover:underline">
+                      Login
+                    </Link>
+                  </p>
+                </div>
               </div>
             </div>
           </PageContainer>

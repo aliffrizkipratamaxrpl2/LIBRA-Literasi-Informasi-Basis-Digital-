@@ -16,6 +16,7 @@ export default function Navbar({ variant = "public" }: NavbarProps) {
   const landingLinks = [
     { href: "/", label: "Beranda" },
     { href: "#tentang-kami", label: "Tentang Kami" },
+    { href: "#paket-harga", label: "Paket Harga" },
     { href: "#hubungi-kami", label: "Hubungi Kami" },
   ];
 
