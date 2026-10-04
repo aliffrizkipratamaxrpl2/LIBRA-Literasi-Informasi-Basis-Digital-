@@ -15,6 +15,27 @@ export default function LoginPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    try {
+      const username = email.split("@")[0] || "Khall Myaw";
+      const userProfile = {
+        fullName: username.charAt(0).toUpperCase() + username.slice(1),
+        email: email,
+        dob: "March 14, 1995",
+        location: "Boston, MA",
+        dailyGoal: "45 minutes",
+        favoriteGenres: ["Fiction", "Technology", "History"],
+        dailyReminders: true,
+        newBookAlerts: true,
+        weeklySummary: false,
+        publicProfile: false,
+        shareHistory: true,
+      };
+      localStorage.setItem("libra_user_profile", JSON.stringify(userProfile));
+    } catch {
+      // LocalStorage fallback
+    }
+
     router.push("/home");
   };
 
@@ -197,7 +218,7 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Right Column: Editorial Visual Showcase (hidden on small screen) */}
+      {/* Right Column: Editorial Visual Showcase */}
       <div className="hidden lg:flex flex-1 p-8 bg-[#f4efe6] border-l border-[#e6e0d6] items-center justify-center">
         <div className="max-w-lg w-full space-y-6">
           <div className="relative aspect-[4/3] rounded-3xl overflow-hidden shadow-xl shadow-[#8c695b]/10">

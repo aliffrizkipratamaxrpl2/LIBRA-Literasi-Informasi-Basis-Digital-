@@ -5,7 +5,8 @@ import Link from "next/link";
 import { Navbar, Footer, PageContainer } from "@/components/layout";
 import BookCard from "@/components/books/BookCard";
 import SectionHeader from "@/components/navigation/SectionHeader";
-import { getCategories } from "@/lib/api";
+import { getCategories, getBooks } from "@/lib/api";
+import type { Book } from "@/types";
 import {
   BookOpen,
   Heart,
@@ -131,12 +132,13 @@ const defaultCategories: CategoryItem[] = [
   },
 ];
 
-const popularInFiction = [
+const defaultPopularInFiction: Book[] = [
   {
     id: "echo-of-silence",
     title: "The Echo of Silence",
     author: "Marcia Sterling",
     rating: 4.8,
+    category: "Fiction",
     cover: "/images/books/echo-of-silence.jpeg",
   },
   {
@@ -144,6 +146,7 @@ const popularInFiction = [
     title: "Beyond the Grid",
     author: "Klaus Van Der Meer",
     rating: 4.9,
+    category: "Fiction",
     cover: "/images/books/beyond-the-grid.jpeg",
   },
   {
@@ -151,6 +154,7 @@ const popularInFiction = [
     title: "Midsummer Wanderlust",
     author: "Celia Harlow",
     rating: 4.6,
+    category: "Fiction",
     cover: "/images/books/midsummer-wanderlust.jpeg",
   },
   {
@@ -158,6 +162,7 @@ const popularInFiction = [
     title: "The Algorithms of Joy",
     author: "Dr. Arthur Pendelton",
     rating: 4.7,
+    category: "Fiction",
     cover: "/images/books/algorithms-of-joy.jpeg",
   },
   {
@@ -165,18 +170,26 @@ const popularInFiction = [
     title: "Contours of Memory",
     author: "Siddharth Mehta",
     rating: 4.5,
+    category: "Fiction",
     cover: "/images/books/contours-of-memory.jpeg",
   },
 ];
 
 export default function CategoriesPage() {
   const [categories, setCategories] = useState<CategoryItem[]>(defaultCategories);
+  const [popularInFiction, setPopularInFiction] = useState<Book[]>(defaultPopularInFiction);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     async function load() {
-      const data = await getCategories();
-      if (data && data.length > 0) {
-        const mapped: CategoryItem[] = data.map((c, i) => {
+      setIsLoading(true);
+      const [catsData, booksData] = await Promise.all([
+        getCategories(),
+        getBooks(),
+      ]);
+
+      if (catsData && catsData.length > 0) {
+        const mapped: CategoryItem[] = catsData.map((c, i) => {
           const fallback = defaultCategories[i % defaultCategories.length];
           return {
             id: c.id,
@@ -190,6 +203,16 @@ export default function CategoriesPage() {
         });
         setCategories(mapped);
       }
+
+      if (booksData && booksData.length > 0) {
+        const fictionBooks = booksData.filter(
+          (b) => b.category?.toLowerCase() === "fiction"
+        );
+        setPopularInFiction(
+          fictionBooks.length >= 3 ? fictionBooks.slice(0, 5) : booksData.slice(0, 5)
+        );
+      }
+      setIsLoading(false);
     }
     load();
   }, []);
@@ -216,7 +239,7 @@ export default function CategoriesPage() {
             {categories.map((cat) => (
               <Link
                 key={cat.name}
-                href={`/browse?category=${cat.slug}`}
+                href={`/browse?category=${encodeURIComponent(cat.name)}`}
                 className="group flex flex-col p-6 rounded-2xl border border-[#e6e0d6] bg-white hover:shadow-md hover:border-[#d4cfc6] transition-all"
               >
                 <div
@@ -242,15 +265,33 @@ export default function CategoriesPage() {
               title="Popular in Fiction"
               description="The novels currently captivating our reading community"
               actionLabel="Explore Fiction Genre"
-              actionHref="/browse?category=fiction"
+              actionHref={`/browse?category=${encodeURIComponent("Fiction")}`}
             />
 
             {/* Book Cards Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-6">
-              {popularInFiction.map((book) => (
-                <BookCard key={book.id} {...book} />
-              ))}
-            </div>
+            {isLoading ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-6">
+                {[...Array(5)].map((_, i) => (
+                  <div
+                    key={i}
+                    className="animate-pulse bg-[#f4efe6] rounded-2xl aspect-[3/4]"
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-6">
+                {popularInFiction.map((book) => (
+                  <BookCard
+                    key={book.id}
+                    id={book.id}
+                    title={book.title}
+                    author={book.author}
+                    rating={book.rating ?? 4.8}
+                    cover={book.cover || "/images/books/echo-of-silence.jpeg"}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         </PageContainer>
       </main>

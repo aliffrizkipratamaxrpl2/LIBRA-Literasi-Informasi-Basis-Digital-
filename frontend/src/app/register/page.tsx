@@ -16,6 +16,26 @@ export default function RegisterPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    try {
+      const userProfile = {
+        fullName: name.trim().slice(0, 15) || "Khall Myaw",
+        email: email.trim(),
+        dob: "March 14, 1995",
+        location: "Boston, MA",
+        dailyGoal: "45 minutes",
+        favoriteGenres: ["Fiction", "Technology", "History"],
+        dailyReminders: true,
+        newBookAlerts: true,
+        weeklySummary: false,
+        publicProfile: false,
+        shareHistory: true,
+      };
+      localStorage.setItem("libra_user_profile", JSON.stringify(userProfile));
+    } catch {
+      // LocalStorage fallback
+    }
+
     router.push("/home");
   };
 
@@ -49,15 +69,21 @@ export default function RegisterPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label
-                htmlFor="name"
-                className="block text-xs font-semibold uppercase tracking-wider text-[#1c1917] mb-2"
-              >
-                Full Name
-              </label>
+              <div className="flex justify-between items-center mb-2">
+                <label
+                  htmlFor="name"
+                  className="block text-xs font-semibold uppercase tracking-wider text-[#1c1917]"
+                >
+                  Full Name / Username
+                </label>
+                <span className="text-[10px] text-[#a8a29e]">
+                  {name.length}/15
+                </span>
+              </div>
               <input
                 id="name"
                 type="text"
+                maxLength={15}
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
@@ -98,7 +124,8 @@ export default function RegisterPage() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="At least 8 characters"
+                  placeholder="At least 6 characters"
+                  minLength={6}
                   className="w-full px-4 py-3 text-sm rounded-xl border border-[#e6e0d6] bg-white text-[#1c1917] placeholder:text-[#a8a29e] focus:outline-none focus:border-[#8c695b] transition-colors pr-10"
                 />
                 <button

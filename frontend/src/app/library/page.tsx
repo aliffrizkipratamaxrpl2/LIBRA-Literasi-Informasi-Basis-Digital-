@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Navbar, Footer, PageContainer } from "@/components/layout";
 import BookCard from "@/components/books/BookCard";
-import { LayoutGrid, List, CheckCircle2 } from "lucide-react";
+import { getSavedBooks, subscribeSavedBooks } from "@/lib/savedBooks";
+import type { Book } from "@/types";
+import { LayoutGrid, List, CheckCircle2, Bookmark } from "lucide-react";
 
 type LibraryTab = "All" | "Currently Reading" | "Saved" | "Completed";
 type ViewMode = "grid" | "list";
@@ -34,7 +36,7 @@ const currentlyReadingBooks = [
   },
 ];
 
-const savedBooks = [
+const defaultSavedBooks: Book[] = [
   {
     id: "echo-of-silence",
     title: "The Echo of Silence",
@@ -54,6 +56,20 @@ const savedBooks = [
 export default function LibraryPage() {
   const [activeTab, setActiveTab] = useState<LibraryTab>("Currently Reading");
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
+  const [savedBooks, setSavedBooks] = useState<Book[]>(() => {
+    const stored = getSavedBooks();
+    return stored.length > 0 ? stored : defaultSavedBooks;
+  });
+
+  useEffect(() => {
+    // Subscribe to real-time additions/removals
+    const unsubscribe = subscribeSavedBooks(() => {
+      const updated = getSavedBooks();
+      setSavedBooks(updated.length > 0 ? updated : defaultSavedBooks);
+    });
+
+    return unsubscribe;
+  }, []);
 
   const showCurrentlyReading =
     activeTab === "All" || activeTab === "Currently Reading";
@@ -109,6 +125,10 @@ export default function LibraryPage() {
             {(["All", "Currently Reading", "Saved", "Completed"] as LibraryTab[]).map(
               (tab) => {
                 const isActive = activeTab === tab;
+                let badge = "";
+                if (tab === "Currently Reading") badge = ` (${currentlyReadingBooks.length})`;
+                if (tab === "Saved") badge = ` (${savedBooks.length})`;
+
                 return (
                   <button
                     key={tab}
@@ -120,6 +140,7 @@ export default function LibraryPage() {
                     }`}
                   >
                     {tab}
+                    {badge}
                   </button>
                 );
               }
@@ -240,11 +261,38 @@ export default function LibraryPage() {
                 Saved E-Books ({savedBooks.length})
               </h2>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-6">
-                {savedBooks.map((book) => (
-                  <BookCard key={book.id} {...book} />
-                ))}
-              </div>
+              {savedBooks.length > 0 ? (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-6">
+                  {savedBooks.map((book) => (
+                    <BookCard
+                      key={book.id}
+                      id={book.id}
+                      title={book.title}
+                      author={book.author}
+                      rating={book.rating ?? 4.8}
+                      cover={book.cover || "/images/books/echo-of-silence.jpeg"}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="bg-white rounded-3xl border border-[#e6e0d6] p-12 text-center shadow-xs max-w-lg mx-auto">
+                  <div className="w-12 h-12 rounded-full bg-[#f4efe6] flex items-center justify-center text-[#8c695b] mx-auto mb-4">
+                    <Bookmark size={20} />
+                  </div>
+                  <h3 className="text-base font-bold text-[#1c1917]">
+                    No saved books yet
+                  </h3>
+                  <p className="text-xs text-[#79716b] mt-1 mb-6">
+                    Browse the catalog and bookmark books to save them to your library shelf.
+                  </p>
+                  <Link
+                    href="/browse"
+                    className="inline-flex px-6 py-2.5 text-xs font-semibold bg-[#8c695b] text-white rounded-full hover:bg-[#7b594b] transition-colors"
+                  >
+                    Explore Catalog
+                  </Link>
+                </div>
+              )}
             </section>
           )}
 

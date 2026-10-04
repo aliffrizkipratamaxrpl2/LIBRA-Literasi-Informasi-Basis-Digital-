@@ -10,6 +10,8 @@ export function mapBackendBookToBook(b: BackendBook): Book {
     author: b.writer,
     cover: b.cover || "/images/books/echo-of-silence.jpeg",
     category: b.category_id ? String(b.category_id) : undefined,
+    synopsis: b.synopsis,
+    content: b.content,
   };
 }
 
