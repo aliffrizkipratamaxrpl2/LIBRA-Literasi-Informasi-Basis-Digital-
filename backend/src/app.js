@@ -1,7 +1,7 @@
-import express from 'express';
-import cors from 'cors';
-import pool from './db/config.js';
-import {z} from 'zod';
+import express from "express";
+import cors from "cors";
+import pool from "./db/config.js";
+import { z } from "zod";
 import jwt from "jsonwebtoken";
 import { v2 as cloudinary } from "cloudinary";
 import { CloudinaryStorage } from "multer-storage-cloudinary";
@@ -30,9 +30,19 @@ const storage = new CloudinaryStorage({
 });
 const upload = multer({ storage: storage });
 
+const benefitsStorage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: "plan_benefits",
+    allowed_formats: ["jpg", "jpeg", "png", "webp", "svg"],
+  },
+});
+const uploadBenefits = multer({ storage: benefitsStorage });
+
 const requiredString = (fieldName, maxLen) => {
   let schema = z.string().trim().min(1, `${fieldName} required`);
-  if (maxLen) schema = schema.max(maxLen, `${fieldName} max ${maxLen} characters`);
+  if (maxLen)
+    schema = schema.max(maxLen, `${fieldName} max ${maxLen} characters`);
   return schema;
 };
 
@@ -87,6 +97,17 @@ const Schema = {
     start_date: z.coerce.date(),
     end_date: z.coerce.date(),
   }),
+  plan_benefits: z.object({
+    plan_id: z.coerce.number().int().min(1, "ID invalid"),
+    badge_icon: z.string().nullable().optional(),
+    username_border_color: z.string().max(20, "Hex/Color max 20 characters").nullable().optional(),
+    avatar_border_color: z.string().max(20, "Hex/Color max 20 characters").nullable().optional(),
+    banner_image: z.string().nullable().optional(),
+  }),
+  createSubscriptionSchema: z.object({
+    user_id: z.coerce.number().int().min(1, "ID user tidak valid"),
+    plan_id: z.coerce.number().int().min(1, "ID plan tidak valid"),
+  })
 };
 
 const validate = (schema) => {
@@ -112,6 +133,28 @@ const authenticateToken = (req, res, next) => {
   }
 };
 
+app.post("/api/v1/subscriptions/:user_id/:plan_id", authenticateToken, validate(Schema.createSubscriptionSchema), async (req, res) => {
+  try {
+      const { user_id, plan_id } = req.params;
+      const startDate = new Date();
+      const endDate = new Date();
+      endDate.setMonth(endDate.getMonth() + 1);
+      const status = "active";
+      const query = `INSERT INTO subscriptions (user_id, plan_id, status, start_date, end_date) VALUES (?, ?, ?, ?, ?) RETURNING *;`;
+      const values = [user_id, plan_id, status, startDate, endDate];
+
+      const result = await pool.query(query, values);
+
+      return res.status(201).json({
+        message: "Berhasil berlangganan selama 1 bulan",
+        data: result.rows[0],
+      });
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({ error: "Gagal membuat langganan" });
+    }
+  }
+);
 // Endpoint 1: Post Books
 app.post("/api/v1/post-books", upload.single("cover"), validate(Schema.books), async (req, res) => {
   if (req.file) {
@@ -119,16 +162,26 @@ app.post("/api/v1/post-books", upload.single("cover"), validate(Schema.books), a
   }
   const { category_id, title, writer, cover, synopsis, content } = req.body;
   try {
-    await pool.query(
-      "INSERT INTO books (category_id, title, writer, cover, synopsis, content) VALUES (?, ?, ?, ?, ?, ?)",
-      [category_id, title, writer, cover, synopsis, content]
-    );
-    res.json({ success: true, message: "successfully post book" });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "failed to post book" });
+      const { user_id, plan_id } = req.params;
+      const startDate = new Date();
+      const endDate = new Date();
+      endDate.setMonth(endDate.getMonth() + 1);
+      const status = "active";
+      const query = `INSERT INTO subscriptions (user_id, plan_id, status, start_date, end_date) VALUES (?, ?, ?, ?, ?) RETURNING *;`;
+      const values = [user_id, plan_id, status, startDate, endDate];
+
+      const result = await pool.query(query, values);
+
+      return res.status(201).json({
+        message: "Berhasil berlangganan selama 1 bulan",
+        data: result.rows[0],
+      });
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({ error: "Gagal membuat langganan" });
+    }
   }
-});
+);
 
 // Endpoint 2: Edit Profile (menggunakan update terbaru: injectFile & Schema.editprofile)
 app.put("/api/v1/users/:id", authenticateToken, upload.single("img"), injectFile, validate(Schema.editprofile), async (req, res) => {
