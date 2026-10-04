@@ -61,6 +61,7 @@ export const Schema = {
     title: requiredString("title"),
     writer: requiredString("writer"),
     cover: z.string().optional(),
+    synopsis: requiredString("synopsis"),
     content: requiredString("content"),
   }),
   saved: z.object({
@@ -119,8 +120,44 @@ app.put("/api/v1/users/:id", authenticateToken, upload.single("img"), validate(S
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "error to update profile data" });
+app.get("/api/v1/books", async (req, res) => {
+  try {
+    const [rows] = await pool.query("SELECT * FROM books")
+    if(rows.length === 0) {
+      return res.status(404).json({ error: "book not found" });
+    }
+    res.json({ books: rows });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "error to get books data" });
   }
-});
+})
+
+app.get("/api/v1/plans", async (req, res) => {
+  try {
+    const [rows] = await pool.query("SELECT * FROM plans")
+    if(rows.length === 0) {
+      return res.status(404).json({ error: "plans not found" });
+    }
+    res.json({ plans: rows });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "error to get plans data" });
+  }
+})
+
+app.get("/api/v1/categories", async (req, res) => {
+  try {
+    const [rows] = await pool.query("SELECT * FROM categories")
+    if(rows.length === 0) {
+      return res.status(404).json({ error: "category not found" });
+    }
+    res.json({ categories: rows });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "error to get category list" });
+  }
+})
 
 app.listen(3000, () => {
   console.log('Server started on port 3000');
