@@ -61,6 +61,7 @@ export const Schema = {
     title: requiredString("title"),
     writer: requiredString("writer"),
     cover: z.string().optional(),
+    synopsis: requiredString("synopsis"),
     content: requiredString("content"),
   }),
   saved: z.object({
