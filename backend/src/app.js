@@ -204,6 +204,23 @@ app.get("/api/v1/categories", async (req, res) => {
   }
 })
 
+app.post("/api/v1/post-books", upload.single("cover"), validate(Schema.books), async (req, res) => {
+  if (req.file) {
+    req.body.cover = req.file.path;
+  }
+  const { category_id, title, writer, cover, synopsis, content } = req.body;
+  try {
+    await pool.query(
+      "INSERT INTO books (category_id, title, writer, cover, synopsis, content) VALUES (?, ?, ?, ?, ?, ?)",
+      [category_id, title, writer, cover, synopsis, content]
+    );
+    res.json({ success: true, message: "successfully post book" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "failed to post book" });
+  }
+});
+
 app.listen(3000, () => {
   console.log('Server started on port 3000');
 });
