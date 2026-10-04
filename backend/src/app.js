@@ -36,10 +36,22 @@ const requiredString = (fieldName, maxLen) => {
   return schema;
 };
 
-export const Schema = {
+const injectFile = (req, res, next) => {
+  if (req.file) {
+    req.body.img = req.file.path;
+  }
+  next();
+};
+
+const Schema = {
   users: z.object({
     username: requiredString("username", 15),
-    email: z.string().trim().email("invalid email format"),
+    email: requiredString("email"),
+    pass: requiredString("password").min(6, "password must be at least 6 characters"),
+    img: requiredString("image"),
+  }),
+  editprofile: z.object({
+    username: requiredString("username", 15),
     pass: requiredString("password").min(6, "password must be at least 6 characters"),
     img: requiredString("image"),
   }),
@@ -99,26 +111,18 @@ const authenticateToken = (req, res, next) => {
   }
 };
 
-app.put("/api/v1/users/:id", authenticateToken, upload.single("img"), validate(Schema.users), async (req, res) => {
-  if (req.file) {
-    req.body.img = req.file.path;
-  }
+app.put("/api/v1/users/:id", authenticateToken, upload.single("img"), injectFile, validate(Schema.editprofile), async (req, res) => {
   try {
     const { id } = req.params;
     const { username, pass, img } = req.body;
-    const [rows] = await pool.query(
-      "UPDATE users SET username = ?, pass = ?, img = ? WHERE id = ?",
-      [username, pass, img, id]
-    );
-
-    if (rows.length === 0) {
+    const [rows] = await pool.query("UPDATE users SET username = ?, pass = ?, img = ? WHERE id = ?", [username, pass, img, id]);
+    if (rows.affectedRows === 0) {
       return res.status(404).json({ error: "user not found" });
     }
-
-    res.json({ success: true, message: "successfully update profile" });
+    return res.json({ success: true, message: "successfully update profile" });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: "error to update profile data" });
+    return res.status(500).json({ error: "error to update profile data" });
   }
 });
 
