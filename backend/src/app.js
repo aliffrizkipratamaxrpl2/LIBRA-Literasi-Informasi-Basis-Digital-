@@ -177,6 +177,19 @@ app.get("/api/v1/books", async (req, res) => {
   }
 })
 
+app.get("/api/v1/plans", async (req, res) => {
+  try {
+    const [rows] = await pool.query("SELECT * FROM plans")
+    if(rows.length === 0) {
+      return res.status(404).json({ error: "plans not found" });
+    }
+    res.json({ plans: rows });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "error to get plans data" });
+  }
+})
+
 app.listen(3000, () => {
   console.log('Server started on port 3000');
 });
