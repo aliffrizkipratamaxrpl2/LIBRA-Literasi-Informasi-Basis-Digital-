@@ -121,6 +121,31 @@ app.post("/api/v1/register", upload.single("img"), (req, res, next) => {
   }
 );
 
+app.post("/api/v1/login", validate(Schema.login), async (req, res) => {
+  const { email, pass } = req.body;
+
+  try {
+    const [rows] = await pool.query(
+      "SELECT id, email, pass FROM users WHERE email = ? AND pass = ?",
+      [email, pass]
+    );
+
+    if (rows.length === 0) {
+      return res.status(401).json({ error: "Email atau password salah" });
+    }
+
+    const users = rows[0];
+
+    const token = jwt.sign({ id: users.id, email: users.email }, JWT_SECRET, {
+      expiresIn: "1h",
+    });
+
+    res.json({ message: "login successfully", token });
+  } catch (error) {
+    res.status(500).json({ error: "login failed" });
+  }
+});
+
 app.listen(3000, () => {
   console.log('Server started on port 3000');
 });
