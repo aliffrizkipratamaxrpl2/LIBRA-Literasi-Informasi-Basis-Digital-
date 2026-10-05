@@ -5,8 +5,13 @@ import Image from "next/image";
 import Link from "next/link";
 import { Navbar, Footer, PageContainer } from "@/components/layout";
 import BookCard from "@/components/books/BookCard";
-import { getSavedBooks, subscribeSavedBooks, initialDefaultSaved } from "@/lib/savedBooks";
-import { LayoutGrid, List, CheckCircle2, Bookmark } from "lucide-react";
+import {
+  getSavedBooks,
+  subscribeSavedBooks,
+  removeSavedBook,
+  initialDefaultSaved,
+} from "@/lib/savedBooks";
+import { LayoutGrid, List, CheckCircle2, Bookmark, Star } from "lucide-react";
 
 type LibraryTab = "All" | "Currently Reading" | "Saved" | "Completed";
 type ViewMode = "grid" | "list";
@@ -235,14 +240,94 @@ export default function LibraryPage() {
               </h2>
 
               {savedBooks.length > 0 ? (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-6">
-                  {savedBooks.map((book) => (
-                    <BookCard
-                      key={book.id}
-                      book={book}
-                    />
-                  ))}
-                </div>
+                viewMode === "grid" ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-6">
+                    {savedBooks.map((book) => (
+                      <BookCard key={book.id} book={book} />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="bg-white rounded-3xl border border-[#e6e0d6] p-4 divide-y divide-[#eee9e0] shadow-xs">
+                    {savedBooks.map((book) => (
+                      <div
+                        key={book.id}
+                        className="py-3.5 first:pt-1 last:pb-1 flex flex-col sm:flex-row sm:items-center justify-between gap-4 group"
+                      >
+                        <div className="flex items-center gap-4 min-w-0">
+                          <Link
+                            href={`/books/${book.id}`}
+                            className="relative w-12 h-16 rounded-xl overflow-hidden shrink-0 shadow-2xs border border-[#e6e0d6]/60 bg-[#f4efe6]"
+                          >
+                            <Image
+                              src={
+                                book.cover ||
+                                "/images/books/echo-of-silence.jpeg"
+                              }
+                              alt={book.title}
+                              fill
+                              className="object-cover group-hover:scale-105 transition-transform"
+                              sizes="60px"
+                            />
+                          </Link>
+                          <div className="min-w-0">
+                            <Link
+                              href={`/books/${book.id}`}
+                              className="text-sm font-bold text-[#1c1917] hover:text-[#8c695b] transition-colors truncate block"
+                            >
+                              {book.title}
+                            </Link>
+                            <p className="text-xs text-[#79716b] mt-0.5 truncate">
+                              {book.author}
+                            </p>
+                            <div className="flex items-center gap-3 mt-1.5 text-[11px] text-[#79716b]">
+                              {book.category && (
+                                <span className="px-2.5 py-0.5 rounded-full bg-[#f4efe6] text-[#8c695b] font-medium">
+                                  {book.category}
+                                </span>
+                              )}
+                              {book.rating && (
+                                <span className="flex items-center gap-1 font-semibold text-[#1c1917]">
+                                  <Star
+                                    size={12}
+                                    className="fill-[#e59934] text-[#e59934]"
+                                  />
+                                  {book.rating}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-3 self-end sm:self-auto shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => removeSavedBook(book.id)}
+                            title="Remove from saved"
+                            aria-label="Remove from saved"
+                            className="p-2 rounded-full text-[#79716b] hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                          >
+                            <Bookmark
+                              size={16}
+                              className="fill-[#8c695b] text-[#8c695b]"
+                            />
+                          </button>
+                          <Link
+                            href={`/books/${book.id}`}
+                            className="px-4 py-1.5 text-xs font-semibold rounded-full border border-[#e6e0d6] text-[#1c1917] hover:bg-[#f4efe6] transition-colors"
+                          >
+                            Details
+                          </Link>
+                          <Link
+                            href={`/read/${book.id}`}
+                            className="px-4 py-1.5 text-xs font-semibold rounded-full bg-[#8c695b] text-white hover:bg-[#7b594b] transition-colors shadow-2xs"
+                          >
+                            Read Now
+                          </Link>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )
               ) : (
                 <div className="bg-white rounded-3xl border border-[#e6e0d6] p-12 text-center shadow-xs max-w-lg mx-auto">
                   <div className="w-12 h-12 rounded-full bg-[#f4efe6] flex items-center justify-center text-[#8c695b] mx-auto mb-4">
