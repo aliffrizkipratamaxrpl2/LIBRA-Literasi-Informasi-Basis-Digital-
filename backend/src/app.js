@@ -125,41 +125,6 @@ const authenticateToken = (req, res, next) => {
   }
 };
 
-app.post("/api/v1/saved/:users_id/:book_id", authenticateToken, async (req, res) => {
-  try {
-    const { users_id, book_id } = req.params;
-    const query = `INSERT INTO saved (users_id, book_id) VALUES (?, ?);`;
-    const values = [users_id, book_id];
-    const requireActiveSubscription = (req, res, next) => {
-    const sub = req.user?.subscriptions;
-
-  if (!sub) {
-    return res.status(403).json({
-      error: "Access Denied: You Need To Subscribe First",
-    });
-  }
-      return res.status(201).json({
-        message: "Successfully subscribed for 1 month",
-        data: result.rows[0],
-      });
-  if (sub.status !== "active") {
-    return res.status(403).json({
-      error: "Access Denied: Subscription Status Not Active",
-    });
-  }
-
-  const now = new Date();
-  const endDate = new Date(sub.end_date);
-
-  if (now > endDate) {
-    return res.status(403).json({
-      error: "Access Denied: Subscription Expired",
-    });
-  }
-
-  next();
-};
-
 const generateAccessToken = (users) => {
   return jwt.sign(
     {
@@ -202,6 +167,24 @@ app.post("/api/v1/subscriptions/:user_id/:plan_id", authenticateToken, validate(
     }
   }
 );
+
+app.post("/api/v1/saved/:users_id/:book_id", authenticateToken, async (req, res) => {
+  try {
+    const { users_id, book_id } = req.params;
+    const query = `INSERT INTO saved (users_id, book_id) VALUES (?, ?);`;
+    const values = [users_id, book_id];
+
+    const data = await pool.query(query, values);
+
+    return res.status(201).json({
+      message: "Book saved!",
+      data: data.rows,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: "Failed to save book" });
+  }
+});
 
 // Endpoint 2: Edit Profile (menggunakan update terbaru: injectFile & Schema.editprofile)
 app.put("/api/v1/users/:id", authenticateToken, upload.single("img"), injectFile, validate(Schema.editprofile), async (req, res) => {
@@ -282,7 +265,7 @@ app.post("/api/v1/register", upload.single("img"), (req, res, next) => {
       res.status(500).json({ error: "Database error" });
     }
   }
-});
+);
 
 app.post("/api/v1/login", validate(Schema.login), async (req, res) => {
   const { email, pass } = req.body;
