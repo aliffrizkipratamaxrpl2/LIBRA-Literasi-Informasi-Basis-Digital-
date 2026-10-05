@@ -1,12 +1,12 @@
 import express from "express";
 import cors from "cors";
+import "dotenv/config";
 import pool from "./db/config.js";
 import { z } from "zod";
 import jwt from "jsonwebtoken";
 import { v2 as cloudinary } from "cloudinary";
 import { CloudinaryStorage } from "multer-storage-cloudinary";
 import multer from "multer";
-import "dotenv/config";
 
 const app = express();
 
@@ -57,16 +57,11 @@ const Schema = {
   users: z.object({
     username: requiredString("username", 15),
     email: requiredString("email"),
-    pass: requiredString("password").min(6, "password must be at least 6 characters"),
-    img: requiredString("image"),
-  }),
-  editprofile: z.object({
-    username: requiredString("username", 15),
-    pass: requiredString("password").min(6, "password must be at least 6 characters"),
+    pass: requiredString("password").min(6, "password must be at least 6 characters",),
     img: requiredString("image"),
   }),
   login: z.object({
-    email: z.string().trim().email("invalid email format"),
+    email: requiredString("email"),
     pass: requiredString("password"),
   }),
   categories: z.object({
@@ -123,62 +118,96 @@ const validate = (schema) => {
 
 const authenticateToken = (req, res, next) => {
   const token = req.headers.authorization?.split(" ")[1];
-  if (!token) return res.status(401).json({ error: "Token tidak ditemukan" });
+  if (!token) {
+    return res.status(401).json({ error: "Token tidak ditemukan "});
+  }
 
   try {
-    req.user = jwt.verify(token, process.env.JWT_SECRET || JWT_SECRET);
+    req.user = jwt.verify(token, process.env.JWT_SECRET);
     next();
-  } catch {
-    return res.status(403).json({ error: "Token tidak valid" });
+  } catch (error) {
+    console.error(error);
+    return res.status(403).json({ error: "Token tidak valid " + error.message });
   }
 };
 
-app.post("/api/v1/subscriptions/:user_id/:plan_id", authenticateToken, validate(Schema.createSubscriptionSchema), async (req, res) => {
-  try {
+const requireActiveSubscription = (req, res, next) => {
+  const sub = req.user?.subscriptions;
+
+  if (!sub) {
+    return res.status(403).json({
+      error: "Access Denied: You Need To Subscribe First",
+    });
+  }
+
+  if (sub.status !== "active") {
+    return res.status(403).json({
+      error: "Access Denied: Subscription Status Not Active",
+    });
+  }
+
+  const now = new Date();
+  const endDate = new Date(sub.end_date);
+
+  if (now > endDate) {
+    return res.status(403).json({
+      error: "Access Denied: Subscription Expired",
+    });
+  }
+
+  next();
+};
+
+const generateAccessToken = (users) => {
+  return jwt.sign(
+    {
+      id: users.id,
+      username: users.username,
+      email: users.email,
+      subscription: subscription
+      ? {
+        plan_id: subscription.plan_id,
+        status: subscription.status,
+        start_date: subscription.start_date,
+        end_date: subscription.end_date,
+      }
+      : null,
+    },
+    process.env.JWT_SECRET || JWT_SECRET,
+    { expiresIn: "1d" }
+  );
+};
+
+app.post("/api/v1/subscriptions/:user_id/:plan_id", authenticateToken, async (req, res) => {
+    try {
       const { user_id, plan_id } = req.params;
+
       const startDate = new Date();
       const endDate = new Date();
       endDate.setMonth(endDate.getMonth() + 1);
       const status = "active";
-      const query = `INSERT INTO subscriptions (user_id, plan_id, status, start_date, end_date) VALUES (?, ?, ?, ?, ?) RETURNING *;`;
+
+      const query = `INSERT INTO subscriptions (user_id, plan_id, status, start_date, end_date) VALUES (?, ?, ?, ?, ?);`;
       const values = [user_id, plan_id, status, startDate, endDate];
 
       const result = await pool.query(query, values);
 
-      return res.status(201).json({
-        message: "Berhasil berlangganan selama 1 bulan",
-        data: result.rows[0],
-      });
-    } catch (error) {
-      console.error(error);
-      return res.status(500).json({ error: "Gagal membuat langganan" });
-    }
-  }
-);
-// Endpoint 1: Post Books
-app.post("/api/v1/post-books", upload.single("cover"), validate(Schema.books), async (req, res) => {
-  if (req.file) {
-    req.body.cover = req.file.path;
-  }
-  const { category_id, title, writer, cover, synopsis, content } = req.body;
-  try {
-      const { user_id, plan_id } = req.params;
-      const startDate = new Date();
-      const endDate = new Date();
-      endDate.setMonth(endDate.getMonth() + 1);
-      const status = "active";
-      const query = `INSERT INTO subscriptions (user_id, plan_id, status, start_date, end_date) VALUES (?, ?, ?, ?, ?) RETURNING *;`;
-      const values = [user_id, plan_id, status, startDate, endDate];
+      if (!result.rows || result.rows.length === 0) {
+        return res.status(400).json({ error: "Failed to Save Subscription Data" });
+      }
 
-      const result = await pool.query(query, values);
+      const newSubscription = result.rows[0];
+
+      const token = generateAccessToken(req.user, newSubscription);
 
       return res.status(201).json({
-        message: "Berhasil berlangganan selama 1 bulan",
-        data: result.rows[0],
+        message: "Successfully Subscribed For 1 Month",
+        token,
+        data: newSubscription,
       });
     } catch (error) {
-      console.error(error);
-      return res.status(500).json({ error: "Gagal membuat langganan" });
+      console.error("Error creating subscription:", error);
+      return res.status(500).json({ error: "Failed To Create Subscription" + error.message });
     }
   }
 );
