@@ -131,6 +131,11 @@ const authenticateToken = (req, res, next) => {
   }
 };
 
+app.post("/api/v1/saved/:users_id/:book_id", authenticateToken, async (req, res) => {
+  try {
+    const { users_id, book_id } = req.params;
+    const query = `INSERT INTO saved (users_id, book_id) VALUES (?, ?);`;
+    const values = [users_id, book_id];
 const requireActiveSubscription = (req, res, next) => {
   const sub = req.user?.subscriptions;
 
@@ -190,8 +195,15 @@ app.post("/api/v1/subscriptions/:user_id/:plan_id", authenticateToken, async (re
       const query = `INSERT INTO subscriptions (user_id, plan_id, status, start_date, end_date) VALUES (?, ?, ?, ?, ?);`;
       const values = [user_id, plan_id, status, startDate, endDate];
 
-      const result = await pool.query(query, values);
+    const data = await pool.query(query, values);
 
+    return res.status(201).json({
+      message: "Book saved!",
+      data: data.rows,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: "Failed to save book" });
       if (!result.rows || result.rows.length === 0) {
         return res.status(400).json({ error: "Failed to Save Subscription Data" });
       }
@@ -291,7 +303,7 @@ app.post("/api/v1/register", upload.single("img"), (req, res, next) => {
       res.status(500).json({ error: "Database error" });
     }
   }
-);
+});
 
 app.post("/api/v1/login", validate(Schema.login), async (req, res) => {
   const { email, pass } = req.body;
