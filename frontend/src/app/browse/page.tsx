@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { Navbar, Footer, PageContainer } from "@/components/layout";
 import BookCard from "@/components/books/BookCard";
 import { getBooks, getCategories } from "@/lib/api";
+import { allCatalogBooks } from "@/data/mockBooks";
 import type { Book } from "@/types";
 import { Search, X, ChevronDown, Check } from "lucide-react";
 
@@ -16,72 +17,14 @@ interface FilterState {
   publicationYear: string[];
 }
 
-const defaultBrowseBooks: Book[] = [
-  {
-    id: "echo-of-silence",
-    title: "The Echo of Silence",
-    author: "Marcia Sterling",
-    rating: 4.8,
-    category: "Fiction",
-    cover: "/images/books/echo-of-silence.jpeg",
-  },
-  {
-    id: "beyond-the-grid",
-    title: "Beyond the Grid",
-    author: "Klaus Van Der Meer",
-    rating: 4.9,
-    category: "Technology",
-    cover: "/images/books/beyond-the-grid.jpeg",
-  },
-  {
-    id: "midsummer-wanderlust",
-    title: "Midsummer Wanderlust",
-    author: "Celia Harlow",
-    rating: 4.6,
-    category: "Romance",
-    cover: "/images/books/midsummer-wanderlust.jpeg",
-  },
-  {
-    id: "algorithms-of-joy",
-    title: "The Algorithms of Joy",
-    author: "Dr. Arthur Pendelton",
-    rating: 4.7,
-    category: "Technology",
-    cover: "/images/books/algorithms-of-joy.jpeg",
-  },
-  {
-    id: "contours-of-memory",
-    title: "Contours of Memory",
-    author: "Siddharth Mehta",
-    rating: 4.5,
-    category: "History",
-    cover: "/images/books/contours-of-memory.jpeg",
-  },
-  {
-    id: "echoes-of-renaissance",
-    title: "Echoes of the Renaissance",
-    author: "Elena Rostova",
-    rating: 4.8,
-    category: "Art",
-    cover: "/images/books/echoes-of-renaissance.jpeg",
-  },
-  {
-    id: "design-systems",
-    title: "Design Systems",
-    author: "Clementine Dupont",
-    rating: 4.9,
-    category: "Technology",
-    cover: "/images/books/design-systems.jpeg",
-  },
-  {
-    id: "cozy-cabin",
-    title: "Cozy Cabin Living",
-    author: "Arthur Wood",
-    rating: 4.7,
-    category: "Self-Development",
-    cover: "/images/books/cozy-cabin.jpeg",
-  },
-];
+const defaultBrowseBooks: Book[] = allCatalogBooks.map((b) => ({
+  id: b.id,
+  title: b.title,
+  author: b.author,
+  rating: b.rating,
+  category: b.categories[0],
+  cover: b.cover,
+}));
 
 const staticFilterOptions = {
   categories: [
@@ -288,13 +231,14 @@ function BrowseContent() {
                 {categoriesList.map((cat) => {
                   const isChecked = filters.categories.includes(cat);
                   return (
-                    <label
+                    <button
                       key={cat}
-                      className="flex items-center gap-2.5 text-sm text-[#79716b] hover:text-[#1c1917] cursor-pointer select-none"
+                      type="button"
+                      onClick={() => toggleFilter("categories", cat)}
+                      className="flex items-center gap-2.5 text-sm text-[#79716b] hover:text-[#1c1917] cursor-pointer select-none text-left w-full transition-colors"
                     >
                       <div
-                        onClick={() => toggleFilter("categories", cat)}
-                        className={`w-4 h-4 rounded flex items-center justify-center border transition-colors ${
+                        className={`w-4 h-4 rounded flex items-center justify-center border transition-colors shrink-0 ${
                           isChecked
                             ? "bg-[#8c695b] border-[#8c695b] text-white"
                             : "border-[#d4cfc6] bg-white"
@@ -302,8 +246,10 @@ function BrowseContent() {
                       >
                         {isChecked && <Check size={11} strokeWidth={3} />}
                       </div>
-                      <span>{cat}</span>
-                    </label>
+                      <span className={isChecked ? "font-medium text-[#1c1917]" : ""}>
+                        {cat}
+                      </span>
+                    </button>
                   );
                 })}
               </div>
@@ -318,13 +264,14 @@ function BrowseContent() {
                 {staticFilterOptions.format.map((fmt) => {
                   const isChecked = filters.format.includes(fmt);
                   return (
-                    <label
+                    <button
                       key={fmt}
-                      className="flex items-center gap-2.5 text-sm text-[#79716b] hover:text-[#1c1917] cursor-pointer select-none"
+                      type="button"
+                      onClick={() => toggleFilter("format", fmt)}
+                      className="flex items-center gap-2.5 text-sm text-[#79716b] hover:text-[#1c1917] cursor-pointer select-none text-left w-full transition-colors"
                     >
                       <div
-                        onClick={() => toggleFilter("format", fmt)}
-                        className={`w-4 h-4 rounded flex items-center justify-center border transition-colors ${
+                        className={`w-4 h-4 rounded flex items-center justify-center border transition-colors shrink-0 ${
                           isChecked
                             ? "bg-[#8c695b] border-[#8c695b] text-white"
                             : "border-[#d4cfc6] bg-white"
@@ -332,8 +279,10 @@ function BrowseContent() {
                       >
                         {isChecked && <Check size={11} strokeWidth={3} />}
                       </div>
-                      <span>{fmt}</span>
-                    </label>
+                      <span className={isChecked ? "font-medium text-[#1c1917]" : ""}>
+                        {fmt}
+                      </span>
+                    </button>
                   );
                 })}
               </div>
@@ -348,13 +297,14 @@ function BrowseContent() {
                 {staticFilterOptions.language.map((lang) => {
                   const isChecked = filters.language.includes(lang);
                   return (
-                    <label
+                    <button
                       key={lang}
-                      className="flex items-center gap-2.5 text-sm text-[#79716b] hover:text-[#1c1917] cursor-pointer select-none"
+                      type="button"
+                      onClick={() => toggleFilter("language", lang)}
+                      className="flex items-center gap-2.5 text-sm text-[#79716b] hover:text-[#1c1917] cursor-pointer select-none text-left w-full transition-colors"
                     >
                       <div
-                        onClick={() => toggleFilter("language", lang)}
-                        className={`w-4 h-4 rounded flex items-center justify-center border transition-colors ${
+                        className={`w-4 h-4 rounded flex items-center justify-center border transition-colors shrink-0 ${
                           isChecked
                             ? "bg-[#8c695b] border-[#8c695b] text-white"
                             : "border-[#d4cfc6] bg-white"
@@ -362,8 +312,10 @@ function BrowseContent() {
                       >
                         {isChecked && <Check size={11} strokeWidth={3} />}
                       </div>
-                      <span>{lang}</span>
-                    </label>
+                      <span className={isChecked ? "font-medium text-[#1c1917]" : ""}>
+                        {lang}
+                      </span>
+                    </button>
                   );
                 })}
               </div>
@@ -378,13 +330,14 @@ function BrowseContent() {
                 {staticFilterOptions.ratingRange.map((rating) => {
                   const isChecked = filters.ratingRange.includes(rating.value);
                   return (
-                    <label
+                    <button
                       key={rating.value}
-                      className="flex items-center gap-2.5 text-sm text-[#79716b] hover:text-[#1c1917] cursor-pointer select-none"
+                      type="button"
+                      onClick={() => toggleFilter("ratingRange", rating.value)}
+                      className="flex items-center gap-2.5 text-sm text-[#79716b] hover:text-[#1c1917] cursor-pointer select-none text-left w-full transition-colors"
                     >
                       <div
-                        onClick={() => toggleFilter("ratingRange", rating.value)}
-                        className={`w-4 h-4 rounded flex items-center justify-center border transition-colors ${
+                        className={`w-4 h-4 rounded flex items-center justify-center border transition-colors shrink-0 ${
                           isChecked
                             ? "bg-[#8c695b] border-[#8c695b] text-white"
                             : "border-[#d4cfc6] bg-white"
@@ -392,8 +345,10 @@ function BrowseContent() {
                       >
                         {isChecked && <Check size={11} strokeWidth={3} />}
                       </div>
-                      <span>{rating.label}</span>
-                    </label>
+                      <span className={isChecked ? "font-medium text-[#1c1917]" : ""}>
+                        {rating.label}
+                      </span>
+                    </button>
                   );
                 })}
               </div>
@@ -408,13 +363,14 @@ function BrowseContent() {
                 {staticFilterOptions.publicationYear.map((year) => {
                   const isChecked = filters.publicationYear.includes(year.value);
                   return (
-                    <label
+                    <button
                       key={year.value}
-                      className="flex items-center gap-2.5 text-sm text-[#79716b] hover:text-[#1c1917] cursor-pointer select-none"
+                      type="button"
+                      onClick={() => toggleFilter("publicationYear", year.value)}
+                      className="flex items-center gap-2.5 text-sm text-[#79716b] hover:text-[#1c1917] cursor-pointer select-none text-left w-full transition-colors"
                     >
                       <div
-                        onClick={() => toggleFilter("publicationYear", year.value)}
-                        className={`w-4 h-4 rounded flex items-center justify-center border transition-colors ${
+                        className={`w-4 h-4 rounded flex items-center justify-center border transition-colors shrink-0 ${
                           isChecked
                             ? "bg-[#8c695b] border-[#8c695b] text-white"
                             : "border-[#d4cfc6] bg-white"
@@ -422,8 +378,10 @@ function BrowseContent() {
                       >
                         {isChecked && <Check size={11} strokeWidth={3} />}
                       </div>
-                      <span>{year.label}</span>
-                    </label>
+                      <span className={isChecked ? "font-medium text-[#1c1917]" : ""}>
+                        {year.label}
+                      </span>
+                    </button>
                   );
                 })}
               </div>
@@ -492,11 +450,8 @@ function BrowseContent() {
                   {paginatedBooks.map((book) => (
                     <BookCard
                       key={book.id}
-                      id={book.id}
-                      title={book.title}
-                      author={book.author}
-                      rating={book.rating ?? 4.8}
-                      cover={book.cover || "/images/books/echo-of-silence.jpeg"}
+                      book={book}
+                      showCategoryBadge
                     />
                   ))}
                 </div>

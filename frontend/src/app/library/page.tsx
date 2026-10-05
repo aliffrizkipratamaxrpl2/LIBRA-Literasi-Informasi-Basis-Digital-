@@ -266,11 +266,7 @@ export default function LibraryPage() {
                   {savedBooks.map((book) => (
                     <BookCard
                       key={book.id}
-                      id={book.id}
-                      title={book.title}
-                      author={book.author}
-                      rating={book.rating ?? 4.8}
-                      cover={book.cover || "/images/books/echo-of-silence.jpeg"}
+                      book={book}
                     />
                   ))}
                 </div>

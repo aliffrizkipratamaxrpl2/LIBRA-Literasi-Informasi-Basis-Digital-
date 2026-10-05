@@ -8,6 +8,7 @@ import { Navbar, Footer, PageContainer } from "@/components/layout";
 import BookCard from "@/components/books/BookCard";
 import SectionHeader from "@/components/navigation/SectionHeader";
 import { getBooks, getCategories } from "@/lib/api";
+import { allCatalogBooks } from "@/data/mockBooks";
 import type { Book } from "@/types";
 import { Search, Flame, X } from "lucide-react";
 
@@ -39,40 +40,14 @@ const continueReadingBooks = [
   },
 ];
 
-const defaultRecommendedBooks: Book[] = [
-  {
-    id: "lessons-of-time",
-    title: "Lessons of Time",
-    author: "Prof. Alistair Finch",
-    rating: 4.9,
-    category: "History",
-    cover: "/images/books/lessons-of-time.jpeg",
-  },
-  {
-    id: "whispers-of-kyoto",
-    title: "Whispers of Kyoto",
-    author: "Sayuri Haruki",
-    rating: 4.8,
-    category: "Fiction",
-    cover: "/images/books/whispers-of-kyoto.jpeg",
-  },
-  {
-    id: "designing-the-humane",
-    title: "Designing the Humane",
-    author: "Clementine Dupont",
-    rating: 4.7,
-    category: "Technology",
-    cover: "/images/books/organic-forms.jpeg",
-  },
-  {
-    id: "cozy-cabin-guide",
-    title: "The Cozy Cabin Guide",
-    author: "Arthur Wood",
-    rating: 4.6,
-    category: "Self-Dev",
-    cover: "/images/books/cozy-cabin-guide.jpeg",
-  },
-];
+const defaultRecommendedBooks: Book[] = allCatalogBooks.map((b) => ({
+  id: b.id,
+  title: b.title,
+  author: b.author,
+  rating: b.rating,
+  category: b.categories[0],
+  cover: b.cover,
+}));
 
 export default function HomePage() {
   const router = useRouter();
@@ -101,9 +76,12 @@ export default function HomePage() {
     loadData();
   }, []);
 
-  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" && searchQuery.trim()) {
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
       router.push(`/browse?q=${encodeURIComponent(searchQuery.trim())}`);
+    } else {
+      router.push("/browse");
     }
   };
 
@@ -147,28 +125,40 @@ export default function HomePage() {
             </p>
           </div>
 
-          {/* Search Bar */}
-          <div className="relative mb-5">
-            <div className="flex items-center w-full h-14 px-5 rounded-full border border-[#e6e0d6] bg-white shadow-xs focus-within:border-[#8c695b] transition-all">
-              <Search size={19} className="text-[#79716b] shrink-0 mr-3" />
+          {/* Search Bar Form */}
+          <form onSubmit={handleSearchSubmit} className="relative mb-5">
+            <div className="flex items-center w-full h-14 px-5 rounded-full border border-[#e6e0d6] bg-white shadow-xs focus-within:border-[#8c695b] focus-within:ring-2 focus-within:ring-[#8c695b]/10 transition-all">
+              <button
+                type="submit"
+                aria-label="Search catalog"
+                className="text-[#79716b] hover:text-[#8c695b] shrink-0 mr-3 transition-colors cursor-pointer"
+              >
+                <Search size={19} />
+              </button>
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={handleSearchKeyDown}
-                placeholder="Search books, authors, categories, or quotes... (Press Enter to search catalog)"
+                placeholder="Search books, authors, categories, or quotes... (Press Enter to browse)"
                 className="w-full text-sm bg-transparent text-[#1c1917] placeholder:text-[#a8a29e] focus:outline-none"
               />
               {searchQuery && (
                 <button
+                  type="button"
                   onClick={() => setSearchQuery("")}
-                  className="p-1 rounded-full text-[#79716b] hover:text-[#1c1917] hover:bg-[#f4efe6] transition-colors"
+                  className="p-1 rounded-full text-[#79716b] hover:text-[#1c1917] hover:bg-[#f4efe6] transition-colors mr-2 cursor-pointer"
                 >
                   <X size={16} />
                 </button>
               )}
+              <button
+                type="submit"
+                className="px-4 py-1.5 text-xs font-semibold rounded-full bg-[#8c695b] text-white hover:bg-[#7b594b] transition-colors shrink-0 cursor-pointer"
+              >
+                Browse
+              </button>
             </div>
-          </div>
+          </form>
 
           {/* Category Filter Pills */}
           <div className="flex items-center gap-2.5 overflow-x-auto pb-2 mb-10 no-scrollbar">
@@ -268,11 +258,8 @@ export default function HomePage() {
                     {displayedBooks.map((book) => (
                       <BookCard
                         key={book.id}
-                        id={book.id}
-                        title={book.title}
-                        author={book.author}
-                        rating={book.rating ?? 4.8}
-                        cover={book.cover || "/images/books/echo-of-silence.jpeg"}
+                        book={book}
+                        showCategoryBadge={selectedCategory === "All"}
                       />
                     ))}
                   </div>

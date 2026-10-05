@@ -6,7 +6,6 @@ import jwt from "jsonwebtoken";
 import { v2 as cloudinary } from "cloudinary";
 import { CloudinaryStorage } from "multer-storage-cloudinary";
 import multer from "multer";
-import "dotenv/config";
 
 const app = express();
 
@@ -89,13 +88,16 @@ const validate = (schema) => {
 
 const authenticateToken = (req, res, next) => {
   const token = req.headers.authorization?.split(" ")[1];
-  if (!token) return res.status(401).json({ error: "Token tidak ditemukan" });
+  if (!token) {
+    return res.status(401).json({ error: "Token tidak ditemukan "});
+  }
 
   try {
-    req.user = jwt.verify(token, process.env.JWT_SECRET || JWT_SECRET);
+    req.user = jwt.verify(token, process.env.JWT_SECRET);
     next();
-  } catch {
-    return res.status(403).json({ error: "Token tidak valid" });
+  } catch (error) {
+    console.error(error);
+    return res.status(403).json({ error: "Token tidak valid " + error.message });
   }
 };
 
