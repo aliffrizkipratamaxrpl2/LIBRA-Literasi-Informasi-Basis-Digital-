@@ -46,14 +46,7 @@ const requiredString = (fieldName, maxLen) => {
   return schema;
 };
 
-const injectFile = (req, res, next) => {
-  if (req.file) {
-    req.body.img = req.file.path;
-  }
-  next();
-};
-
-const Schema = {
+export const Schema = {
   users: z.object({
     username: requiredString("username", 15),
     email: requiredString("email"),
@@ -118,6 +111,7 @@ const validate = (schema) => {
 
 const authenticateToken = (req, res, next) => {
   const token = req.headers.authorization?.split(" ")[1];
+  if (!token) return res.status(401).json({ error: "Token not found" });
   if (!token) {
     return res.status(401).json({ error: "Token tidak ditemukan "});
   }
@@ -125,6 +119,8 @@ const authenticateToken = (req, res, next) => {
   try {
     req.user = jwt.verify(token, process.env.JWT_SECRET);
     next();
+  } catch {
+    return res.status(403).json({ error: "Invalid token" });
   } catch (error) {
     console.error(error);
     return res.status(403).json({ error: "Token tidak valid " + error.message });
@@ -144,6 +140,16 @@ const requireActiveSubscription = (req, res, next) => {
       error: "Access Denied: You Need To Subscribe First",
     });
   }
+      return res.status(201).json({
+        message: "Successfully subscribed for 1 month",
+        data: result.rows[0],
+      });
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({ error: "Failed to create subscription" });
+    }
+  }
+);
 
   if (sub.status !== "active") {
     return res.status(403).json({
@@ -366,5 +372,5 @@ app.post("/api/v1/post-books", upload.single("cover"), validate(Schema.books), a
 });
 
 app.listen(3000, () => {
-  console.log('Server started on port 3000');
+  console.log("Server started on port 3000");
 });
