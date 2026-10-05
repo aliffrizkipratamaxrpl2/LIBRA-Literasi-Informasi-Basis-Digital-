@@ -1,12 +1,12 @@
 import express from "express";
 import cors from "cors";
+import "dotenv/config";
 import pool from "./db/config.js";
 import { z } from "zod";
 import jwt from "jsonwebtoken";
 import { v2 as cloudinary } from "cloudinary";
 import { CloudinaryStorage } from "multer-storage-cloudinary";
 import multer from "multer";
-import "dotenv/config";
 
 const app = express();
 
@@ -46,15 +46,22 @@ const requiredString = (fieldName, maxLen) => {
   return schema;
 };
 
-export const Schema = {
+const injectFile = (req, res, next) => {
+  if (req.file) {
+    req.body.img = req.file.path;
+  }
+  next();
+};
+
+const Schema = {
   users: z.object({
     username: requiredString("username", 15),
-    email: z.string().trim().email("invalid email format"),
+    email: requiredString("email"),
     pass: requiredString("password").min(6, "password must be at least 6 characters",),
     img: requiredString("image"),
   }),
   login: z.object({
-    email: z.string().trim().email("invalid email format"),
+    email: requiredString("email"),
     pass: requiredString("password"),
   }),
   categories: z.object({
@@ -111,13 +118,16 @@ const validate = (schema) => {
 
 const authenticateToken = (req, res, next) => {
   const token = req.headers.authorization?.split(" ")[1];
-  if (!token) return res.status(401).json({ error: "Token tidak ditemukan" });
+  if (!token) {
+    return res.status(401).json({ error: "Token tidak ditemukan "});
+  }
 
   try {
-    req.user = jwt.verify(token, process.env.JWT_SECRET || JWT_SECRET);
+    req.user = jwt.verify(token, process.env.JWT_SECRET);
     next();
-  } catch {
-    return res.status(403).json({ error: "Token tidak valid" });
+  } catch (error) {
+    console.error(error);
+    return res.status(403).json({ error: "Token tidak valid " + error.message });
   }
 };
 
@@ -126,6 +136,64 @@ app.post("/api/v1/saved/:users_id/:book_id", authenticateToken, async (req, res)
     const { users_id, book_id } = req.params;
     const query = `INSERT INTO saved (users_id, book_id) VALUES (?, ?);`;
     const values = [users_id, book_id];
+const requireActiveSubscription = (req, res, next) => {
+  const sub = req.user?.subscriptions;
+
+  if (!sub) {
+    return res.status(403).json({
+      error: "Access Denied: You Need To Subscribe First",
+    });
+  }
+
+  if (sub.status !== "active") {
+    return res.status(403).json({
+      error: "Access Denied: Subscription Status Not Active",
+    });
+  }
+
+  const now = new Date();
+  const endDate = new Date(sub.end_date);
+
+  if (now > endDate) {
+    return res.status(403).json({
+      error: "Access Denied: Subscription Expired",
+    });
+  }
+
+  next();
+};
+
+const generateAccessToken = (users) => {
+  return jwt.sign(
+    {
+      id: users.id,
+      username: users.username,
+      email: users.email,
+      subscription: subscription
+      ? {
+        plan_id: subscription.plan_id,
+        status: subscription.status,
+        start_date: subscription.start_date,
+        end_date: subscription.end_date,
+      }
+      : null,
+    },
+    process.env.JWT_SECRET || JWT_SECRET,
+    { expiresIn: "1d" }
+  );
+};
+
+app.post("/api/v1/subscriptions/:user_id/:plan_id", authenticateToken, async (req, res) => {
+    try {
+      const { user_id, plan_id } = req.params;
+
+      const startDate = new Date();
+      const endDate = new Date();
+      endDate.setMonth(endDate.getMonth() + 1);
+      const status = "active";
+
+      const query = `INSERT INTO subscriptions (user_id, plan_id, status, start_date, end_date) VALUES (?, ?, ?, ?, ?);`;
+      const values = [user_id, plan_id, status, startDate, endDate];
 
     const data = await pool.query(query, values);
 
@@ -136,9 +204,167 @@ app.post("/api/v1/saved/:users_id/:book_id", authenticateToken, async (req, res)
   } catch (error) {
     console.error(error);
     return res.status(500).json({ error: "Failed to save book" });
+      if (!result.rows || result.rows.length === 0) {
+        return res.status(400).json({ error: "Failed to Save Subscription Data" });
+      }
+
+      const newSubscription = result.rows[0];
+
+      const token = generateAccessToken(req.user, newSubscription);
+
+      return res.status(201).json({
+        message: "Successfully Subscribed For 1 Month",
+        token,
+        data: newSubscription,
+      });
+    } catch (error) {
+      console.error("Error creating subscription:", error);
+      return res.status(500).json({ error: "Failed To Create Subscription" + error.message });
+    }
+  }
+);
+
+// Endpoint 2: Edit Profile (menggunakan update terbaru: injectFile & Schema.editprofile)
+app.put("/api/v1/users/:id", authenticateToken, upload.single("img"), injectFile, validate(Schema.editprofile), async (req, res) => {
+  if (req.file) {
+    req.body.img = req.file.path;
+  }
+  
+  try {
+    const { id } = req.params;
+    const { username, pass, img } = req.body;
+    const [rows] = await pool.query("UPDATE users SET username = ?, pass = ?, img = ? WHERE id = ?", [username, pass, img, id]);
+    if (rows.affectedRows === 0) {
+      return res.status(404).json({ error: "user not found" });
+    }
+    return res.json({ success: true, message: "successfully update profile" });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: "error to update profile data" });
+  }
+});
+
+app.get("/api/v1/books", async (req, res) => {
+  try {
+    const [rows] = await pool.query("SELECT * FROM books");
+    if(rows.length === 0) {
+      return res.status(404).json({ error: "book not found" });
+    }
+    res.json({ books: rows });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "error to get books data" });
+  }
+});
+
+app.get("/api/v1/plans", async (req, res) => {
+  try {
+    const [rows] = await pool.query("SELECT * FROM plans");
+    if(rows.length === 0) {
+      return res.status(404).json({ error: "plans not found" });
+    }
+    res.json({ plans: rows });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "error to get plans data" });
+  }
+});
+
+app.get("/api/v1/categories", async (req, res) => {
+  try {
+    const [rows] = await pool.query("SELECT * FROM categories");
+    if(rows.length === 0) {
+      return res.status(404).json({ error: "category not found" });
+    }
+    res.json({ categories: rows });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "error to get category list" });
+  }
+});
+
+app.post("/api/v1/register", upload.single("img"), (req, res, next) => {
+  if (req.file) {
+    req.body.img = req.file.path;
+  }
+  next();
+}, validate(Schema.users), async (req, res) => {
+  const { username, email, pass, img } = req.body;
+
+    try {
+      const [result] = await pool.query(
+        "INSERT INTO users (username, email, pass, img) VALUES (?, ?, ?, ?)",
+        [username, email, pass, img]
+      );
+
+      res.json({ success: true, message: "register successfully" });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Database error" });
+    }
+  }
+});
+
+app.post("/api/v1/login", validate(Schema.login), async (req, res) => {
+  const { email, pass } = req.body;
+
+  try {
+    const [rows] = await pool.query(
+      "SELECT id, email, pass FROM users WHERE email = ? AND pass = ?",
+      [email, pass]
+    );
+
+    if (rows.length === 0) {
+      return res.status(401).json({ error: "Email atau password salah" });
+    }
+
+    const users = rows[0];
+
+    const token = jwt.sign({ id: users.id, email: users.email }, JWT_SECRET, {
+      expiresIn: "1h",
+    });
+
+    res.json({ message: "login successfully", token });
+  } catch (error) {
+    res.status(500).json({ error: "login failed" });
+  }
+});
+
+app.get("/api/v1/profile", authenticateToken, async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      "SELECT id, email, img FROM users WHERE id = ?",
+      [req.user.id]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: "user not found" });
+    }
+
+    res.json({ user: rows[0] });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "error to get profile data" });
+  }
+});
+
+app.post("/api/v1/post-books", upload.single("cover"), validate(Schema.books), async (req, res) => {
+  if (req.file) {
+    req.body.cover = req.file.path;
+  }
+  const { category_id, title, writer, cover, synopsis, content } = req.body;
+  try {
+    await pool.query(
+      "INSERT INTO books (category_id, title, writer, cover, synopsis, content) VALUES (?, ?, ?, ?, ?, ?)",
+      [category_id, title, writer, cover, synopsis, content]
+    );
+    res.json({ success: true, message: "successfully post book" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "failed to post book" });
   }
 });
 
 app.listen(3000, () => {
-  console.log("Server started on port 3000");
+  console.log('Server started on port 3000');
 });
