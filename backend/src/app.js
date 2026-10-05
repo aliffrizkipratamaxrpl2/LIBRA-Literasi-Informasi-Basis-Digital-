@@ -36,15 +36,15 @@ const requiredString = (fieldName, maxLen) => {
   return schema;
 };
 
-export const Schema = {
+const Schema = {
   users: z.object({
     username: requiredString("username", 15),
-    email: z.string().trim().email("invalid email format"),
+    email: requiredString("email"),
     pass: requiredString("password").min(6, "password must be at least 6 characters"),
     img: requiredString("image"),
   }),
   login: z.object({
-    email: z.string().trim().email("invalid email format"),
+    email: requiredString("email"),
     pass: requiredString("password"),
   }),
   categories: z.object({
