@@ -119,8 +119,6 @@ const authenticateToken = (req, res, next) => {
   try {
     req.user = jwt.verify(token, process.env.JWT_SECRET);
     next();
-  } catch {
-    return res.status(403).json({ error: "Invalid token" });
   } catch (error) {
     console.error(error);
     return res.status(403).json({ error: "Token tidak valid " + error.message });
@@ -132,8 +130,8 @@ app.post("/api/v1/saved/:users_id/:book_id", authenticateToken, async (req, res)
     const { users_id, book_id } = req.params;
     const query = `INSERT INTO saved (users_id, book_id) VALUES (?, ?);`;
     const values = [users_id, book_id];
-const requireActiveSubscription = (req, res, next) => {
-  const sub = req.user?.subscriptions;
+    const requireActiveSubscription = (req, res, next) => {
+    const sub = req.user?.subscriptions;
 
   if (!sub) {
     return res.status(403).json({
@@ -144,13 +142,6 @@ const requireActiveSubscription = (req, res, next) => {
         message: "Successfully subscribed for 1 month",
         data: result.rows[0],
       });
-    } catch (error) {
-      console.error(error);
-      return res.status(500).json({ error: "Failed to create subscription" });
-    }
-  }
-);
-
   if (sub.status !== "active") {
     return res.status(403).json({
       error: "Access Denied: Subscription Status Not Active",
@@ -189,43 +180,25 @@ const generateAccessToken = (users) => {
   );
 };
 
-app.post("/api/v1/subscriptions/:user_id/:plan_id", authenticateToken, async (req, res) => {
-    try {
+app.post("/api/v1/subscriptions/:user_id/:plan_id", authenticateToken, validate(Schema.createSubscriptionSchema), async (req, res) => {
+  try {
       const { user_id, plan_id } = req.params;
-
       const startDate = new Date();
       const endDate = new Date();
       endDate.setMonth(endDate.getMonth() + 1);
       const status = "active";
-
-      const query = `INSERT INTO subscriptions (user_id, plan_id, status, start_date, end_date) VALUES (?, ?, ?, ?, ?);`;
+      const query = `INSERT INTO subscriptions (user_id, plan_id, status, start_date, end_date) VALUES (?, ?, ?, ?, ?) RETURNING *;`;
       const values = [user_id, plan_id, status, startDate, endDate];
 
-    const data = await pool.query(query, values);
-
-    return res.status(201).json({
-      message: "Book saved!",
-      data: data.rows,
-    });
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({ error: "Failed to save book" });
-      if (!result.rows || result.rows.length === 0) {
-        return res.status(400).json({ error: "Failed to Save Subscription Data" });
-      }
-
-      const newSubscription = result.rows[0];
-
-      const token = generateAccessToken(req.user, newSubscription);
+      const result = await pool.query(query, values);
 
       return res.status(201).json({
-        message: "Successfully Subscribed For 1 Month",
-        token,
-        data: newSubscription,
+        message: "Successfully subscribed for 1 month",
+        data: result.rows[0],
       });
     } catch (error) {
-      console.error("Error creating subscription:", error);
-      return res.status(500).json({ error: "Failed To Create Subscription" + error.message });
+      console.error(error);
+      return res.status(500).json({ error: "Failed to create subscription" });
     }
   }
 );
