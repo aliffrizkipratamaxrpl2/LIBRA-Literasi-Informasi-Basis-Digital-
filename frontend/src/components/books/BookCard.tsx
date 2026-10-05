@@ -65,8 +65,8 @@ export default function BookCard({
         />
         <button
           type="button"
-          aria-label={saved ? "Hapus dari Library" : "Simpan ke Library"}
-          title={saved ? "Tersimpan di Library" : "Simpan ke Library"}
+          aria-label={saved ? "Remove from Library" : "Save to Library"}
+          title={saved ? "Saved in Library" : "Save to Library"}
           onClick={handleBookmarkClick}
           className={`absolute top-3 right-3 w-8 h-8 rounded-full backdrop-blur-md flex items-center justify-center transition-all ${
             saved

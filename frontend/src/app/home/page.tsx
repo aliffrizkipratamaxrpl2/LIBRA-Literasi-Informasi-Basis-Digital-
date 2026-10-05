@@ -279,7 +279,7 @@ export default function HomePage() {
                 ) : (
                   <div className="p-8 text-center bg-white rounded-2xl border border-[#e6e0d6]">
                     <p className="text-xs text-[#79716b]">
-                      Belum ada rekomendasi untuk kategori &ldquo;{selectedCategory}&rdquo;.
+                      No recommendations found for &ldquo;{selectedCategory}&rdquo;.
                     </p>
                   </div>
                 )}

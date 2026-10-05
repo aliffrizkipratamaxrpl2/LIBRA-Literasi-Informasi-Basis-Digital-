@@ -62,11 +62,11 @@ export async function postBook(formData: FormData): Promise<{ success: boolean; 
     });
     const data = await res.json();
     if (!res.ok) {
-      return { success: false, error: data.error || "Gagal mengunggah buku" };
+      return { success: false, error: data.error || "Failed to upload book" };
     }
     return { success: true, message: data.message };
   } catch (err) {
-    return { success: false, error: (err as Error).message || "Koneksi ke backend gagal" };
+    return { success: false, error: (err as Error).message || "Backend connection failed" };
   }
 }
 
@@ -88,10 +88,10 @@ export async function updateUserProfile(
     });
     const data = await res.json();
     if (!res.ok) {
-      return { success: false, error: data.error || "Gagal memperbarui profil" };
+      return { success: false, error: data.error || "Failed to update profile" };
     }
     return { success: true, message: data.message };
   } catch (err) {
-    return { success: false, error: (err as Error).message || "Koneksi ke backend gagal" };
+    return { success: false, error: (err as Error).message || "Backend connection failed" };
   }
 }
