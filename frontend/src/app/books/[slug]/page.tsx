@@ -24,19 +24,26 @@ export default function BookDetailPage({
   const fallbackBook = findDetailedBook(slug) || detailedBooksDatabase["designing-the-humane"];
   const [book, setBook] = useState<DetailedBook>(fallbackBook);
   const [relatedBooks, setRelatedBooks] = useState<Book[]>([]);
-  const [isSaved, setIsSaved] = useState<boolean>(() =>
-    isBookSaved(slug || fallbackBook.id)
-  );
+  const [isSaved, setIsSaved] = useState<boolean>(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   // Listen for real-time save updates
   useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      const bookId = book.id || slug;
+      setIsSaved(isBookSaved(bookId));
+    });
+
     const unsubscribe = subscribeSavedBooks(() => {
       const bookId = book.id || slug;
       setIsSaved(isBookSaved(bookId));
     });
-    return unsubscribe;
+
+    return () => {
+      cancelAnimationFrame(frame);
+      unsubscribe();
+    };
   }, [book.id, slug]);
 
   useEffect(() => {

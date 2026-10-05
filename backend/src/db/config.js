@@ -3,6 +3,7 @@
 const pool = mysql.createPool({
   host                : 'localhost',
   user                : 'root',
+  password            : 'LoveSQL1*',
   database            : 'libra_db',
   waitForConnections  : true
 });

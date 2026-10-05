@@ -75,8 +75,14 @@ export default function LandingPage() {
         setRecent([...apiBooks].reverse().slice(0, 6));
       }
 
-      const sourceCats = apiCats && apiCats.length > 0 ? apiCats : categories.map((c) => ({ category: c.name }));
-      const mapped = sourceCats.map((c, i) => {
+      const uniqueCats =
+        apiCats && apiCats.length > 0
+          ? Array.from(new Set(apiCats.map((c) => c.category)))
+              .filter(Boolean)
+              .map((catName) => ({ category: catName }))
+          : categories.map((c) => ({ category: c.name }));
+
+      const mapped = uniqueCats.slice(0, 8).map((c, i) => {
         const fallback = categories[i % categories.length];
         const categoryName = c.category;
         const total = getCategoryBookCount(categoryName, bookList);

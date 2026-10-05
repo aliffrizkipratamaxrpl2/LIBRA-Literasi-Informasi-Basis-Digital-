@@ -3,15 +3,83 @@ import type { Book, BackendBook, BackendCategory, BackendPlan } from "@/types";
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api/v1";
 
+const curatedCovers = [
+  "/images/books/echo-of-silence.jpeg",
+  "/images/books/algorithms-of-joy.jpeg",
+  "/images/books/beyond-the-grid.jpeg",
+  "/images/books/contours-of-memory.jpeg",
+  "/images/books/cozy-cabin.jpeg",
+  "/images/books/design-systems.jpeg",
+  "/images/books/echoes-of-renaissance.jpeg",
+  "/images/books/lessons-of-time.jpeg",
+  "/images/books/midsummer-wanderlust.jpeg",
+  "/images/books/organic-forms.jpeg",
+  "/images/books/shifting-light.jpeg",
+  "/images/books/whispers-of-kyoto.jpeg",
+];
+
+export const categoryIdMap: Record<number, string> = {
+  1: "Fiction",
+  2: "Non-Fiction",
+  3: "Science & Technology",
+  4: "Self-Development",
+  5: "Business & Finance",
+  6: "History",
+  7: "Philosophy",
+  8: "Biography & Memoir",
+  9: "Comics & Graphic Novels",
+  10: "Horror & Mystery",
+  11: "Poetry & Literature",
+  12: "Children & Young Adult",
+};
+
+export function resolveBookCover(cover?: string, id?: string | number): string {
+  if (
+    cover &&
+    (cover.startsWith("http://") ||
+      cover.startsWith("https://") ||
+      cover.startsWith("/images/"))
+  ) {
+    return cover;
+  }
+  const numericId =
+    typeof id === "number" ? id : parseInt(String(id), 10) || 1;
+  const index = Math.abs(numericId - 1) % curatedCovers.length;
+  return curatedCovers[index];
+}
+
+export function resolveCategoryName(
+  categoryId?: number | string,
+  customCategory?: string
+): string {
+  if (customCategory && isNaN(Number(customCategory))) {
+    return customCategory;
+  }
+  const idNum =
+    typeof categoryId === "number"
+      ? categoryId
+      : parseInt(String(categoryId), 10);
+  if (idNum && categoryIdMap[idNum]) {
+    return categoryIdMap[idNum];
+  }
+  return customCategory || "General";
+}
+
 export function mapBackendBookToBook(b: BackendBook): Book {
+  const numericId = typeof b.id === "number" ? b.id : parseInt(String(b.id), 10) || 1;
+  const catName = resolveCategoryName(b.category_id);
+  const coverUrl = resolveBookCover(b.cover, b.id);
+  const ratingValue = 4.5 + ((numericId * 7) % 5) / 10;
+
   return {
     id: String(b.id),
     title: b.title,
     author: b.writer,
-    cover: b.cover || "/images/books/echo-of-silence.jpeg",
-    category: b.category_id ? String(b.category_id) : undefined,
+    cover: coverUrl,
+    category: catName,
     synopsis: b.synopsis,
     content: b.content,
+    rating: Number(ratingValue.toFixed(1)),
   };
 }
 

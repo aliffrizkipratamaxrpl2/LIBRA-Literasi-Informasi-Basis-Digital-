@@ -75,7 +75,10 @@ export default function HomePage() {
         setAllBooks(apiBooks);
       }
       if (apiCats && apiCats.length > 0) {
-        setCategories(["All", ...apiCats.map((c) => c.category)]);
+        const uniqueCatNames = Array.from(
+          new Set(apiCats.map((c) => c.category))
+        ).filter(Boolean);
+        setCategories(["All", ...uniqueCatNames]);
       }
       setIsLoading(false);
     }
@@ -112,7 +115,7 @@ export default function HomePage() {
       );
     }
 
-    return list.slice(0, 4);
+    return list.slice(0, 8);
   }, [allBooks, selectedCategory, searchQuery]);
 
   return (

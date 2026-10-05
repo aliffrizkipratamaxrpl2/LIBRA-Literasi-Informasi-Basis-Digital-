@@ -87,7 +87,10 @@ function BrowseContent() {
         setAllBooks(apiBooks);
       }
       if (apiCats && apiCats.length > 0) {
-        setCategoriesList(apiCats.map((c) => c.category));
+        const unique = Array.from(
+          new Set(apiCats.map((c) => c.category))
+        ).filter(Boolean);
+        setCategoriesList(unique);
       }
       setIsLoading(false);
     }

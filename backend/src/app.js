@@ -334,6 +334,6 @@ app.post("/api/v1/post-books", upload.single("cover"), validate(Schema.books), a
   }
 });
 
-app.listen(3000, () => {
-  console.log("Server started on port 3000");
+app.listen(3005, () => {
+  console.log("Server started on port 3005");
 });

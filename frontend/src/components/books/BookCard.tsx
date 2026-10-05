@@ -58,14 +58,22 @@ export default function BookCard({
     propCategory ??
     (propCategoryId ? String(propCategoryId) : undefined);
 
-  const [saved, setSaved] = useState(() => isBookSaved(bookId));
+  const [saved, setSaved] = useState(false);
 
   useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      setSaved(isBookSaved(bookId));
+    });
+
     // Listen to real-time save events across the app
     const unsubscribe = subscribeSavedBooks(() => {
       setSaved(isBookSaved(bookId));
     });
-    return unsubscribe;
+
+    return () => {
+      cancelAnimationFrame(frame);
+      unsubscribe();
+    };
   }, [bookId]);
 
   const handleBookmarkClick = (e: React.MouseEvent) => {
@@ -83,22 +91,25 @@ export default function BookCard({
   };
 
   return (
-    <Link
-      href={`/books/${bookId}`}
-      className={`group flex flex-col ${className}`}
-    >
+    <div className={`group flex flex-col relative ${className}`}>
       <div className="relative aspect-[3/4] rounded-2xl overflow-hidden mb-3.5 bg-[#f4efe6] shadow-2xs border border-[#e6e0d6]/60">
-        <Image
-          src={bookCover}
-          alt={bookTitle}
-          fill
-          className="object-cover transition-transform duration-300 group-hover:scale-105"
-          sizes="(max-width: 768px) 50vw, 16vw"
-        />
+        <Link
+          href={`/books/${bookId}`}
+          className="absolute inset-0 z-0"
+          aria-label={`View details of ${bookTitle}`}
+        >
+          <Image
+            src={bookCover}
+            alt={bookTitle}
+            fill
+            className="object-cover transition-transform duration-300 group-hover:scale-105"
+            sizes="(max-width: 768px) 50vw, 16vw"
+          />
+        </Link>
 
         {/* Optional Category Pill */}
         {showCategoryBadge && bookCategory && (
-          <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider text-[#8c695b] shadow-2xs">
+          <div className="pointer-events-none absolute top-3 left-3 bg-white/90 backdrop-blur-sm px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider text-[#8c695b] shadow-2xs z-10">
             {bookCategory}
           </div>
         )}
@@ -109,7 +120,7 @@ export default function BookCard({
           aria-label={saved ? "Remove from Library" : "Save to Library"}
           title={saved ? "Saved in Library" : "Save to Library"}
           onClick={handleBookmarkClick}
-          className={`absolute top-3 right-3 w-8 h-8 rounded-full backdrop-blur-md flex items-center justify-center transition-all ${
+          className={`absolute top-3 right-3 z-10 w-8 h-8 rounded-full backdrop-blur-md flex items-center justify-center transition-all cursor-pointer ${
             saved
               ? "bg-[#8c695b] text-white opacity-100 shadow-md scale-105"
               : "bg-white/85 text-[#1c1917] opacity-0 group-hover:opacity-100 hover:bg-white"
@@ -122,11 +133,13 @@ export default function BookCard({
         </button>
       </div>
 
-      <h3 className="text-sm font-semibold text-[#1c1917] leading-snug line-clamp-2 group-hover:text-[#8c695b] transition-colors">
-        {bookTitle}
-      </h3>
+      <Link href={`/books/${bookId}`} className="block">
+        <h3 className="text-sm font-semibold text-[#1c1917] leading-snug line-clamp-2 group-hover:text-[#8c695b] transition-colors">
+          {bookTitle}
+        </h3>
+      </Link>
       <p className="text-xs text-[#79716b] mt-1 truncate">{bookAuthor}</p>
       {bookRating !== undefined && <Rating value={bookRating} className="mt-1.5" />}
-    </Link>
+    </div>
   );
 }

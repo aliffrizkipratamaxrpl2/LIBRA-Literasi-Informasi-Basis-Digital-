@@ -189,10 +189,15 @@ export default function CategoriesPage() {
         getBooks(),
       ]);
 
-      const sourceList = catsData && catsData.length > 0 ? catsData : defaultCategories.map((d) => ({ id: d.id, category: d.name }));
+      const uniqueSourceList =
+        catsData && catsData.length > 0
+          ? Array.from(new Set(catsData.map((c) => c.category)))
+              .filter(Boolean)
+              .map((catName, idx) => ({ id: idx + 1, category: catName }))
+          : defaultCategories.map((d) => ({ id: d.id, category: d.name }));
       const booksList = booksData || [];
 
-      const mapped: CategoryItem[] = sourceList.map((c, i) => {
+      const mapped: CategoryItem[] = uniqueSourceList.map((c, i) => {
         const fallback = defaultCategories[i % defaultCategories.length];
         const categoryName = c.category;
         const totalTitles = getCategoryBookCount(categoryName, booksList);
