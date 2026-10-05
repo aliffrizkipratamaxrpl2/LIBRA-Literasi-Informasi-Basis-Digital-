@@ -14,10 +14,10 @@ export default function Navbar({ variant = "public" }: NavbarProps) {
   const pathname = usePathname();
 
   const landingLinks = [
-    { href: "/", label: "Beranda" },
-    { href: "#tentang-kami", label: "Tentang Kami" },
-    { href: "#paket-harga", label: "Paket Harga" },
-    { href: "#hubungi-kami", label: "Hubungi Kami" },
+    { href: "/", label: "Home" },
+    { href: "#about-us", label: "About Us" },
+    { href: "#pricing-plans", label: "Pricing" },
+    { href: "#contact-us", label: "Contact" },
   ];
 
   const appLinks = [
@@ -65,12 +65,14 @@ export default function Navbar({ variant = "public" }: NavbarProps) {
         {/* Right Auth / User Actions */}
         <div className="flex items-center gap-6">
           {variant !== "landing" && (
-            <button
-              aria-label="Search"
+            <Link
+              href="/browse"
+              aria-label="Search Catalog"
+              title="Search Catalog"
               className="text-[#1c1917] hover:text-[#8c695b] transition-colors p-1"
             >
               <Search size={19} />
-            </button>
+            </Link>
           )}
 
           {variant === "authenticated" ? (

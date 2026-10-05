@@ -100,19 +100,19 @@ export default function ProfilePage() {
     // Validation
     const trimmedName = fullName.trim();
     if (!trimmedName) {
-      setSaveStatus({ type: "error", text: "Nama tidak boleh kosong." });
+      setSaveStatus({ type: "error", text: "Full name cannot be empty." });
       return;
     }
     if (trimmedName.length > 15) {
       setSaveStatus({
         type: "error",
-        text: "Nama pengguna maksimal 15 karakter (sesuai spesifikasi sistem).",
+        text: "Username must be 15 characters or less.",
       });
       return;
     }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      setSaveStatus({ type: "error", text: "Format email tidak valid." });
+      setSaveStatus({ type: "error", text: "Invalid email address format." });
       return;
     }
 
@@ -150,12 +150,12 @@ export default function ProfilePage() {
     if (res.success) {
       setSaveStatus({
         type: "success",
-        text: res.message || "Profil berhasil diperbarui di server backend!",
+        text: res.message || "Profile successfully updated on backend server!",
       });
     } else {
       setSaveStatus({
         type: "success",
-        text: "Perubahan profil disimpan di penyimpanan lokal.",
+        text: "Profile changes saved to local browser storage.",
       });
     }
 
@@ -199,9 +199,9 @@ export default function ProfilePage() {
             <button
               onClick={handleSaveProfile}
               disabled={isSaving}
-              className="px-5 py-2 text-xs font-semibold rounded-full bg-[#8c695b] text-white hover:bg-[#7b594b] transition-colors disabled:opacity-50 shadow-xs"
+              className="px-5 py-2 text-xs font-semibold rounded-full bg-[#8c695b] text-white hover:bg-[#7b594b] transition-colors disabled:opacity-50 shadow-xs cursor-pointer"
             >
-              {isSaving ? "Menyimpan..." : "Simpan Profil"}
+              {isSaving ? "Saving..." : "Save Profile"}
             </button>
           </div>
 

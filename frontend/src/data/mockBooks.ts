@@ -337,6 +337,29 @@ When you strip away the superfluous square footage of modern houses, the relatio
   },
 };
 
+export function getCategoryBookCount(
+  categoryName: string,
+  extraBooks: { category?: string; title?: string }[] = []
+): number {
+  const target = categoryName.toLowerCase().replace(/[^a-z0-9]/g, "");
+
+  // 1. Count from static detailed book collection
+  const staticCount = Object.values(detailedBooksDatabase).filter((book) =>
+    book.categories.some((c) => c.toLowerCase().replace(/[^a-z0-9]/g, "").includes(target) || target.includes(c.toLowerCase().replace(/[^a-z0-9]/g, "")))
+  ).length;
+
+  // 2. Count from dynamically supplied backend books
+  const extraCount = extraBooks.filter((book) => {
+    if (!book.category) return false;
+    const bookCat = book.category.toLowerCase().replace(/[^a-z0-9]/g, "");
+    return bookCat.includes(target) || target.includes(bookCat);
+  }).length;
+
+  return Math.max(staticCount, extraCount);
+}
+
+export const allCatalogBooks: DetailedBook[] = Object.values(detailedBooksDatabase);
+
 export function findDetailedBook(idOrSlug: string): DetailedBook | null {
   const normalized = idOrSlug.toLowerCase().replace(/[^a-z0-9]+/g, "-");
   if (detailedBooksDatabase[idOrSlug]) {

@@ -4,7 +4,16 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { BookOpen, Eye, EyeOff, ArrowRight, CheckCircle2 } from "lucide-react";
+import {
+  BookOpen,
+  Eye,
+  EyeOff,
+  ArrowRight,
+  CheckCircle2,
+  Sparkles,
+  ShieldCheck,
+  Compass,
+} from "lucide-react";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -13,9 +22,11 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [agreeTerms, setAgreeTerms] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
 
     try {
       const userProfile = {
@@ -36,48 +47,66 @@ export default function RegisterPage() {
       // LocalStorage fallback
     }
 
-    router.push("/home");
+    setTimeout(() => {
+      router.push("/home");
+    }, 400);
   };
 
   return (
-    <div className="min-h-screen bg-[#f9f6ef] flex">
-      {/* Left Column: Form */}
-      <div className="flex-1 flex flex-col justify-between p-8 sm:p-12 lg:p-16 max-w-2xl mx-auto w-full">
-        {/* Top: Logo */}
-        <div>
-          <Link href="/" className="inline-flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-[#8c695b] flex items-center justify-center text-white shadow-sm">
-              <BookOpen size={18} strokeWidth={2.2} />
+    <div className="min-h-screen bg-[#f9f6ef] flex flex-col lg:flex-row">
+      {/* Left Column: Form & Brand Area */}
+      <div className="flex-1 flex flex-col justify-between p-6 sm:p-10 lg:p-14 max-w-xl mx-auto w-full">
+        {/* Top: Logo & Back Link */}
+        <div className="flex items-center justify-between">
+          <Link href="/" className="inline-flex items-center gap-2.5 group">
+            <div className="w-10 h-10 rounded-2xl bg-[#8c695b] flex items-center justify-center text-white shadow-sm transition-transform group-hover:scale-105">
+              <BookOpen size={19} strokeWidth={2.2} />
             </div>
-            <span className="text-xl font-bold tracking-wider text-[#1c1917]">
-              LIBRA
-            </span>
+            <div>
+              <span className="text-xl font-bold tracking-wider text-[#1c1917] block leading-none">
+                LIBRA
+              </span>
+              <span className="text-[10px] text-[#8c695b] font-medium tracking-widest uppercase mt-0.5 block">
+                Digital Sanctuary
+              </span>
+            </div>
+          </Link>
+
+          <Link
+            href="/"
+            className="text-xs font-semibold text-[#79716b] hover:text-[#1c1917] px-3.5 py-1.5 rounded-full border border-[#e6e0d6] bg-white transition-colors"
+          >
+            &larr; Home
           </Link>
         </div>
 
-        {/* Center: Register Form */}
-        <div className="py-8 max-w-md w-full mx-auto">
-          <div className="mb-8">
-            <h1 className="text-3xl font-serif font-bold text-[#1c1917] tracking-tight">
+        {/* Center: Register Form Card */}
+        <div className="py-6 max-w-md w-full mx-auto">
+          {/* Header */}
+          <div className="mb-6">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#f4efe6] text-[#8c695b] text-[11px] font-bold tracking-wider uppercase border border-[#8c695b]/20 mb-3">
+              <Sparkles size={12} />
+              <span>Free Account Registration</span>
+            </div>
+            <h1 className="text-3xl sm:text-4xl font-serif font-bold text-[#1c1917] tracking-tight">
               Begin your reading journey
             </h1>
-            <p className="text-sm text-[#79716b] mt-2 leading-relaxed">
-              Create an account to explore thousands of literary masterpieces,
-              customize your reader, and track your growth.
+            <p className="text-xs sm:text-sm text-[#79716b] mt-2 leading-relaxed">
+              Join thousands of passionate readers. Explore curated classics, enjoy tranquil reading modes, and track your yearly reading goals.
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <div className="flex justify-between items-center mb-2">
+              <div className="flex justify-between items-center mb-1.5">
                 <label
                   htmlFor="name"
                   className="block text-xs font-semibold uppercase tracking-wider text-[#1c1917]"
                 >
                   Full Name / Username
                 </label>
-                <span className="text-[10px] text-[#a8a29e]">
-                  {name.length}/15
+                <span className="text-[10px] text-[#a8a29e] font-medium">
+                  {name.length}/15 Characters
                 </span>
               </div>
               <input
@@ -87,15 +116,15 @@ export default function RegisterPage() {
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Khall Myaw"
-                className="w-full px-4 py-3 text-sm rounded-xl border border-[#e6e0d6] bg-white text-[#1c1917] placeholder:text-[#a8a29e] focus:outline-none focus:border-[#8c695b] transition-colors"
+                placeholder="e.g. Khall Myaw"
+                className="w-full px-4 py-3 text-sm rounded-2xl border border-[#e6e0d6] bg-white text-[#1c1917] placeholder:text-[#a8a29e] focus:outline-none focus:border-[#8c695b] focus:ring-2 focus:ring-[#8c695b]/10 transition-all shadow-2xs"
               />
             </div>
 
             <div>
               <label
                 htmlFor="email"
-                className="block text-xs font-semibold uppercase tracking-wider text-[#1c1917] mb-2"
+                className="block text-xs font-semibold uppercase tracking-wider text-[#1c1917] mb-1.5"
               >
                 Email Address
               </label>
@@ -105,15 +134,15 @@ export default function RegisterPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="khall@example.com"
-                className="w-full px-4 py-3 text-sm rounded-xl border border-[#e6e0d6] bg-white text-[#1c1917] placeholder:text-[#a8a29e] focus:outline-none focus:border-[#8c695b] transition-colors"
+                placeholder="name@example.com"
+                className="w-full px-4 py-3 text-sm rounded-2xl border border-[#e6e0d6] bg-white text-[#1c1917] placeholder:text-[#a8a29e] focus:outline-none focus:border-[#8c695b] focus:ring-2 focus:ring-[#8c695b]/10 transition-all shadow-2xs"
               />
             </div>
 
             <div>
               <label
                 htmlFor="password"
-                className="block text-xs font-semibold uppercase tracking-wider text-[#1c1917] mb-2"
+                className="block text-xs font-semibold uppercase tracking-wider text-[#1c1917] mb-1.5"
               >
                 Password
               </label>
@@ -124,48 +153,51 @@ export default function RegisterPage() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="At least 6 characters"
+                  placeholder="Minimum 6 characters"
                   minLength={6}
-                  className="w-full px-4 py-3 text-sm rounded-xl border border-[#e6e0d6] bg-white text-[#1c1917] placeholder:text-[#a8a29e] focus:outline-none focus:border-[#8c695b] transition-colors pr-10"
+                  className="w-full px-4 py-3 text-sm rounded-2xl border border-[#e6e0d6] bg-white text-[#1c1917] placeholder:text-[#a8a29e] focus:outline-none focus:border-[#8c695b] focus:ring-2 focus:ring-[#8c695b]/10 transition-all shadow-2xs pr-11"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#79716b] hover:text-[#1c1917] transition-colors"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#79716b] hover:text-[#1c1917] transition-colors p-1"
                 >
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
             </div>
 
-            <div className="flex items-start gap-2 pt-1">
+            <div className="flex items-start gap-2.5 pt-1">
               <input
                 id="agreeTerms"
                 type="checkbox"
                 required
                 checked={agreeTerms}
                 onChange={(e) => setAgreeTerms(e.target.checked)}
-                className="w-4 h-4 mt-0.5 rounded border-[#d4cfc6] text-[#8c695b] focus:ring-[#8c695b]"
+                className="w-4 h-4 mt-0.5 rounded border-[#d4cfc6] text-[#8c695b] focus:ring-[#8c695b] accent-[#8c695b]"
               />
               <label
                 htmlFor="agreeTerms"
                 className="text-xs text-[#79716b] select-none cursor-pointer leading-relaxed"
               >
                 I agree to the{" "}
-                <span className="text-[#1c1917] underline">
+                <span className="text-[#1c1917] font-semibold underline">
                   Terms of Service
                 </span>{" "}
                 and{" "}
-                <span className="text-[#1c1917] underline">Privacy Policy</span>
+                <span className="text-[#1c1917] font-semibold underline">
+                  Privacy Policy
+                </span>
                 .
               </label>
             </div>
 
             <button
               type="submit"
-              className="w-full py-3.5 px-6 text-sm font-semibold bg-[#8c695b] text-white rounded-full hover:bg-[#7b594b] transition-all shadow-sm flex items-center justify-center gap-2 group mt-2"
+              disabled={isLoading}
+              className="w-full py-3.5 px-6 text-sm font-semibold bg-[#8c695b] text-white rounded-full hover:bg-[#7b594b] transition-all shadow-sm flex items-center justify-center gap-2 group mt-2 disabled:opacity-60 cursor-pointer"
             >
-              <span>Create Free Account</span>
+              <span>{isLoading ? "Creating Account..." : "Create Free Account"}</span>
               <ArrowRight
                 size={16}
                 className="transition-transform group-hover:translate-x-1"
@@ -174,12 +206,12 @@ export default function RegisterPage() {
           </form>
 
           {/* Divider */}
-          <div className="relative my-7">
+          <div className="relative my-6">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-[#e6e0d6]" />
             </div>
             <div className="relative flex justify-center text-xs">
-              <span className="bg-[#f9f6ef] px-4 text-[#a8a29e]">
+              <span className="bg-[#f9f6ef] px-4 text-[#a8a29e] uppercase tracking-wider font-semibold">
                 or sign up with
               </span>
             </div>
@@ -190,7 +222,7 @@ export default function RegisterPage() {
             <button
               type="button"
               onClick={() => router.push("/home")}
-              className="flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border border-[#e6e0d6] bg-white text-xs font-medium text-[#1c1917] hover:bg-[#f4efe6] transition-colors"
+              className="flex items-center justify-center gap-2.5 py-2.5 px-4 rounded-2xl border border-[#e6e0d6] bg-white text-xs font-semibold text-[#1c1917] hover:bg-[#f4efe6] transition-all shadow-2xs"
             >
               <svg className="w-4 h-4" viewBox="0 0 24 24">
                 <path
@@ -216,7 +248,7 @@ export default function RegisterPage() {
             <button
               type="button"
               onClick={() => router.push("/home")}
-              className="flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border border-[#e6e0d6] bg-white text-xs font-medium text-[#1c1917] hover:bg-[#f4efe6] transition-colors"
+              className="flex items-center justify-center gap-2.5 py-2.5 px-4 rounded-2xl border border-[#e6e0d6] bg-white text-xs font-semibold text-[#1c1917] hover:bg-[#f4efe6] transition-all shadow-2xs"
             >
               <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
                 <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 6.87c.68-.82 1.13-1.97.98-3.12-1 .04-2.18.66-2.88 1.48-.61.71-1.14 1.88-.99 3 1.11.09 2.21-.54 2.89-1.36z" />
@@ -225,47 +257,71 @@ export default function RegisterPage() {
             </button>
           </div>
 
-          <p className="text-center text-xs text-[#79716b] mt-7">
+          <p className="text-center text-xs text-[#79716b] mt-6">
             Already have an account?{" "}
             <Link
               href="/login"
-              className="font-semibold text-[#8c695b] hover:text-[#7b594b] transition-colors underline"
+              className="font-bold text-[#8c695b] hover:text-[#7b594b] transition-colors underline"
             >
               Sign In
             </Link>
           </p>
         </div>
 
-        {/* Bottom: Copyright */}
-        <div className="text-xs text-[#a8a29e] text-center lg:text-left">
-          © 2026 Readly Inc. All rights reserved.
+        {/* Bottom: Security & Copyright */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-[#a8a29e] pt-4 border-t border-[#e6e0d6]/60">
+          <div className="flex items-center gap-1.5 text-[11px] text-[#79716b]">
+            <ShieldCheck size={14} className="text-[#8c695b]" />
+            <span>Guaranteed Data & Privacy Protection</span>
+          </div>
+          <span className="text-[11px]">© 2026 LIBRA Inc. All rights reserved.</span>
         </div>
       </div>
 
       {/* Right Column: Visual Feature Showcase */}
-      <div className="hidden lg:flex flex-1 p-8 bg-[#f4efe6] border-l border-[#e6e0d6] items-center justify-center">
-        <div className="max-w-md w-full space-y-8">
-          <div className="relative aspect-[4/3] rounded-3xl overflow-hidden shadow-xl shadow-[#8c695b]/10">
+      <div className="hidden lg:flex flex-1 p-10 xl:p-14 bg-[#f4efe6] border-l border-[#e6e0d6] items-center justify-center relative overflow-hidden">
+        {/* Soft decorative background circles */}
+        <div className="absolute -top-24 -right-24 w-96 h-96 rounded-full bg-[#8c695b]/5 blur-3xl" />
+        <div className="absolute -bottom-24 -left-24 w-96 h-96 rounded-full bg-[#8c695b]/5 blur-3xl" />
+
+        <div className="max-w-md w-full space-y-6 relative z-10">
+          {/* Visual Hero Showcase */}
+          <div className="relative aspect-[4/3] rounded-3xl overflow-hidden shadow-2xl shadow-[#8c695b]/15 border border-white/60">
             <Image
               src="/images/hero-reading.jpeg"
-              alt="Cozy reading corner"
+              alt="Cozy reading space"
               fill
               className="object-cover"
               priority
               sizes="600px"
             />
+            {/* Floating Explore Pill */}
+            <div className="absolute bottom-4 left-4 bg-white/95 backdrop-blur-md px-4 py-2 rounded-2xl flex items-center gap-2 shadow-md border border-[#e6e0d6]/80">
+              <Compass size={14} className="text-[#8c695b]" />
+              <span className="text-[11px] font-semibold text-[#1c1917]">
+                Curated Collection of 10,000+ Titles
+              </span>
+            </div>
           </div>
 
-          <div className="bg-white rounded-2xl p-7 border border-[#e6e0d6] space-y-4 shadow-xs">
-            <h3 className="text-base font-bold text-[#1c1917]">
-              Included in your Free membership:
-            </h3>
+          {/* Feature Highlights Card */}
+          <div className="bg-white rounded-3xl p-7 border border-[#e6e0d6] space-y-4 shadow-xs">
+            <div className="flex items-center justify-between pb-3 border-b border-[#eee9e0]">
+              <h3 className="text-sm font-bold text-[#1c1917]">
+                Included in your Free membership:
+              </h3>
+              <span className="px-2.5 py-0.5 rounded-full bg-[#f4efe6] text-[#8c695b] text-[10px] font-bold uppercase tracking-wider">
+                FREE FOREVER
+              </span>
+            </div>
+
             <ul className="space-y-3">
               {[
-                "Access to 500+ free curated digital titles",
-                "Full reader personalization (Sepia, Serif, Dark)",
-                "Seamless synchronization across your devices",
-                "Personal shelf, reading streak, and note taking",
+                "Direct access to 500+ curated digital titles",
+                "Full reader personalization (Sepia, Serif, Dark modes)",
+                "Automatic synchronization across 1 active device",
+                "Personal shelf, reading streak, and note taking tools",
+                "Standard access to the community discussion board",
               ].map((feature, i) => (
                 <li key={i} className="flex items-start gap-3 text-xs text-[#79716b]">
                   <CheckCircle2

@@ -5,6 +5,7 @@ import { Navbar, Footer, PageContainer } from "@/components/layout";
 import BookCard from "@/components/books/BookCard";
 import SectionHeader from "@/components/navigation/SectionHeader";
 import { getBooks, getCategories } from "@/lib/api";
+import { getCategoryBookCount, allCatalogBooks } from "@/data/mockBooks";
 import type { Book } from "@/types";
 import Image from "next/image";
 import Link from "next/link";
@@ -29,33 +30,27 @@ import {
   Check,
 } from "lucide-react";
 
-const trendingBooks = [
-  { id: "echo-of-silence", title: "The Echo of Silence", author: "Marcia Sterling", rating: 4.8, cover: "/images/books/echo-of-silence.jpeg" },
-  { id: "beyond-the-grid", title: "Beyond the Grid", author: "Klaus Van Der Meer", rating: 4.9, cover: "/images/books/beyond-the-grid.jpeg" },
-  { id: "midsummer-wanderlust", title: "Midsummer Wanderlust", author: "Celia Harlow", rating: 4.6, cover: "/images/books/midsummer-wanderlust.jpeg" },
-  { id: "algorithms-of-joy", title: "The Algorithms of Joy", author: "Dr. Arthur Pendelton", rating: 4.7, cover: "/images/books/algorithms-of-joy.jpeg" },
-  { id: "contours-of-memory", title: "Contours of Memory", author: "Siddharth Mehta", rating: 4.5, cover: "/images/books/contours-of-memory.jpeg" },
-  { id: "echoes-of-renaissance", title: "Echoes of the Renaissance", author: "Elena Rostova", rating: 4.8, cover: "/images/books/echoes-of-renaissance.jpeg" },
-];
+const allBooksMapped: Book[] = allCatalogBooks.map((b) => ({
+  id: b.id,
+  title: b.title,
+  author: b.author,
+  rating: b.rating,
+  category: b.categories[0],
+  cover: b.cover,
+}));
 
-const recentlyAdded = [
-  { id: "algorithms-of-joy", title: "The Algorithms of Joy", author: "Dr. Arthur Pendelton", rating: 4.7, cover: "/images/books/algorithms-of-joy.jpeg" },
-  { id: "contours-of-memory", title: "Contours of Memory", author: "Siddharth Mehta", rating: 4.5, cover: "/images/books/contours-of-memory.jpeg" },
-  { id: "echoes-of-renaissance", title: "Echoes of the Renaissance", author: "Elena Rostova", rating: 4.8, cover: "/images/books/echoes-of-renaissance.jpeg" },
-  { id: "echo-of-silence", title: "The Echo of Silence", author: "Marcia Sterling", rating: 4.8, cover: "/images/books/echo-of-silence.jpeg" },
-  { id: "beyond-the-grid", title: "Beyond the Grid", author: "Klaus Van Der Meer", rating: 4.9, cover: "/images/books/beyond-the-grid.jpeg" },
-  { id: "midsummer-wanderlust", title: "Midsummer Wanderlust", author: "Celia Harlow", rating: 4.6, cover: "/images/books/midsummer-wanderlust.jpeg" },
-];
+const trendingBooks = allBooksMapped.slice(0, 6);
+const recentlyAdded = [...allBooksMapped].reverse().slice(0, 6);
 
 const categories = [
-  { name: "Fiction", count: "3,240", icon: Sparkles },
-  { name: "Romance", count: "1,850", icon: Heart },
-  { name: "Mystery", count: "1,210", icon: Search },
-  { name: "Science", count: "980", icon: FlaskConical },
-  { name: "Technology", count: "1,150", icon: Cpu },
-  { name: "History", count: "1,420", icon: Landmark },
-  { name: "Self-Development", count: "2,100", icon: TrendingUp },
-  { name: "Art", count: "890", icon: Palette },
+  { name: "Fiction", count: `${getCategoryBookCount("Fiction")}`, icon: Sparkles },
+  { name: "Romance", count: `${getCategoryBookCount("Romance")}`, icon: Heart },
+  { name: "Mystery", count: `${getCategoryBookCount("Mystery")}`, icon: Search },
+  { name: "Science", count: `${getCategoryBookCount("Science")}`, icon: FlaskConical },
+  { name: "Technology", count: `${getCategoryBookCount("Technology")}`, icon: Cpu },
+  { name: "History", count: `${getCategoryBookCount("History")}`, icon: Landmark },
+  { name: "Self-Development", count: `${getCategoryBookCount("Self-Development")}`, icon: TrendingUp },
+  { name: "Art", count: `${getCategoryBookCount("Art")}`, icon: Palette },
 ];
 
 const stats = [
@@ -73,21 +68,25 @@ export default function LandingPage() {
   useEffect(() => {
     async function loadData() {
       const [apiBooks, apiCats] = await Promise.all([getBooks(), getCategories()]);
+      const bookList = apiBooks || [];
+
       if (apiBooks && apiBooks.length > 0) {
         setTrending(apiBooks.slice(0, 6));
         setRecent([...apiBooks].reverse().slice(0, 6));
       }
-      if (apiCats && apiCats.length > 0) {
-        const mapped = apiCats.map((c, i) => {
-          const fallback = categories[i % categories.length];
-          return {
-            name: c.category,
-            count: fallback.count,
-            icon: fallback.icon,
-          };
-        });
-        setCategoryList(mapped);
-      }
+
+      const sourceCats = apiCats && apiCats.length > 0 ? apiCats : categories.map((c) => ({ category: c.name }));
+      const mapped = sourceCats.map((c, i) => {
+        const fallback = categories[i % categories.length];
+        const categoryName = c.category;
+        const total = getCategoryBookCount(categoryName, bookList);
+        return {
+          name: categoryName,
+          count: String(total),
+          icon: fallback.icon,
+        };
+      });
+      setCategoryList(mapped);
     }
     loadData();
   }, []);
@@ -183,11 +182,7 @@ export default function LandingPage() {
               {trending.map((book) => (
                 <BookCard
                   key={book.id}
-                  id={book.id}
-                  title={book.title}
-                  author={book.author}
-                  rating={book.rating ?? 4.8}
-                  cover={book.cover || "/images/books/echo-of-silence.jpeg"}
+                  book={book}
                 />
               ))}
             </div>
@@ -239,29 +234,25 @@ export default function LandingPage() {
               {recent.map((book, i) => (
                 <BookCard
                   key={`${book.id}-${i}`}
-                  id={book.id}
-                  title={book.title}
-                  author={book.author}
-                  rating={book.rating ?? 4.8}
-                  cover={book.cover || "/images/books/echo-of-silence.jpeg"}
+                  book={book}
                 />
               ))}
             </div>
           </PageContainer>
         </section>
 
-        {/* Section: Tentang Kami */}
-        <section id="tentang-kami" className="py-24 bg-[#f4efe6] border-y border-[#e6e0d6]">
+        {/* Section: About Us */}
+        <section id="about-us" className="py-24 bg-[#f4efe6] border-y border-[#e6e0d6]">
           <PageContainer>
             <div className="max-w-3xl mx-auto text-center space-y-6 mb-16">
               <span className="text-xs font-bold uppercase tracking-widest text-[#8c695b]">
-                Tentang Kami
+                About Us
               </span>
               <h2 className="text-3xl md:text-4xl font-serif font-bold text-[#1c1917] tracking-tight">
-                Membangun Budaya Literasi Informasi Berbasis Digital
+                Cultivating a Modern Digital Reading Sanctuary
               </h2>
               <p className="text-base text-[#79716b] leading-relaxed">
-                LIBRA hadir sebagai ruang perpustakaan digital premium yang menggabungkan keindahan estetika buku klasik dengan kemudahan teknologi modern untuk seluruh pembaca dan pembelajar seumur hidup.
+                LIBRA is an editorial digital sanctuary blending classical book craftsmanship with seamless modern technology for lifelong readers and learners worldwide.
               </p>
             </div>
 
@@ -270,9 +261,9 @@ export default function LandingPage() {
                 <div className="w-12 h-12 rounded-2xl bg-[#f4efe6] flex items-center justify-center text-[#8c695b]">
                   <Compass size={22} />
                 </div>
-                <h3 className="text-lg font-bold text-[#1c1917]">Kurasi Berkualitas</h3>
+                <h3 className="text-lg font-bold text-[#1c1917]">Rigorous Curation</h3>
                 <p className="text-sm text-[#79716b] leading-relaxed">
-                  Setiap karya sastra, buku sains, dan teks akademis dipilih dengan standar kurasi ketat untuk memberikan wawasan bernilai tinggi.
+                  Every novel, science treatise, and philosophical essay is hand-selected under exacting editorial standards to deliver timeless value.
                 </p>
               </div>
 
@@ -280,9 +271,9 @@ export default function LandingPage() {
                 <div className="w-12 h-12 rounded-2xl bg-[#f4efe6] flex items-center justify-center text-[#8c695b]">
                   <Sparkles size={22} />
                 </div>
-                <h3 className="text-lg font-bold text-[#1c1917]">Pengalaman Cozy Reader</h3>
+                <h3 className="text-lg font-bold text-[#1c1917]">Cozy Reader Experience</h3>
                 <p className="text-sm text-[#79716b] leading-relaxed">
-                  Membaca bebas distraksi dengan pilihan tema Sepia, Dark, tipografi Serif elegan, dan sinkronisasi lintas perangkat aktif.
+                  Distraction-free reading with warm Sepia and Dark modes, elegant Serif typography, and instant cross-device synchronization.
                 </p>
               </div>
 
@@ -290,27 +281,27 @@ export default function LandingPage() {
                 <div className="w-12 h-12 rounded-2xl bg-[#f4efe6] flex items-center justify-center text-[#8c695b]">
                   <ShieldCheck size={22} />
                 </div>
-                <h3 className="text-lg font-bold text-[#1c1917]">Akses Terbuka & Inklusif</h3>
+                <h3 className="text-lg font-bold text-[#1c1917]">Open & Inclusive Access</h3>
                 <p className="text-sm text-[#79716b] leading-relaxed">
-                  Menyediakan ribuan judul bebas biaya bagi pelajar dan komunitas agar literasi digital dapat diakses merata di mana saja.
+                  Offering hundreds of complimentary masterworks for students and communities to keep digital literacy universally accessible.
                 </p>
               </div>
             </div>
           </PageContainer>
         </section>
 
-        {/* Section: Detail Paket Harga */}
-        <section id="paket-harga" className="py-24 bg-white border-b border-[#e6e0d6]">
+        {/* Section: Pricing Plans */}
+        <section id="pricing-plans" className="py-24 bg-white border-b border-[#e6e0d6]">
           <PageContainer>
             <div className="max-w-2xl mx-auto text-center space-y-3.5 mb-16">
               <span className="text-xs font-bold uppercase tracking-widest text-[#8c695b]">
-                Pilihan Berlangganan
+                Subscription Options
               </span>
               <h2 className="text-3xl md:text-4xl font-serif font-bold text-[#1c1917] tracking-tight">
-                Pilih Paket Membaca Sesuai Kebutuhan Anda
+                Choose the Reading Plan That Fits You
               </h2>
               <p className="text-sm md:text-base text-[#79716b] leading-relaxed">
-                Nikmati akses ribuan karya sastra dan fitur pembaca digital premium. Masuk atau daftarkan akun Anda untuk mulai membaca.
+                Unlock thousands of literary masterpieces and premium digital reader tools. Sign in or create an account to begin.
               </p>
             </div>
 
@@ -323,10 +314,10 @@ export default function LandingPage() {
                     <h3 className="text-lg font-bold text-[#1c1917]">Free</h3>
                     <div className="flex items-baseline gap-1 mt-3">
                       <span className="text-4xl font-bold text-[#1c1917]">$0</span>
-                      <span className="text-xs text-[#79716b]">/bulan</span>
+                      <span className="text-xs text-[#79716b]">/month</span>
                     </div>
                     <p className="text-xs text-[#79716b] mt-3 leading-relaxed">
-                      Jelajahi literatur klasik dan fitur komunitas dasar tanpa biaya.
+                      Explore classic literature and basic community logs at zero cost.
                     </p>
                   </div>
 
@@ -334,11 +325,11 @@ export default function LandingPage() {
 
                   <ul className="space-y-3.5 text-xs text-[#1c1917]">
                     {[
-                      "Akses ke 500+ buku digital gratis",
-                      "Fitur kustomisasi pembaca standar",
-                      "Sinkronisasi aktif hingga 1 perangkat",
-                      "Tampilan dengan iklan",
-                      "Akses standar ke forum komunitas",
+                      "Access to 500+ free digital books",
+                      "Standard reader customization tools",
+                      "Active device sync (1 device maximum)",
+                      "Ad-supported reading experience",
+                      "Standard community forum access",
                     ].map((feat, i) => (
                       <li key={i} className="flex items-start gap-2.5">
                         <Check
@@ -357,12 +348,12 @@ export default function LandingPage() {
                     href="/register"
                     className="w-full py-3 px-6 text-xs font-semibold rounded-full border border-[#8c695b] text-[#8c695b] hover:bg-[#f4efe6] transition-colors flex items-center justify-center text-center"
                   >
-                    Daftar Akun Gratis
+                    Get Started Free
                   </Link>
                   <p className="text-[11px] text-[#79716b] text-center">
-                    Sudah punya akun?{" "}
+                    Already have an account?{" "}
                     <Link href="/login" className="text-[#8c695b] font-semibold hover:underline">
-                      Login
+                      Log In
                     </Link>
                   </p>
                 </div>
@@ -374,7 +365,7 @@ export default function LandingPage() {
                   <div className="flex items-center justify-between">
                     <h3 className="text-lg font-bold text-[#1c1917]">Reader</h3>
                     <span className="px-3 py-1 rounded-full bg-[#f4efe6] text-[#8c695b] text-[10px] font-bold tracking-wider uppercase border border-[#8c695b]/20">
-                      PALING POPULER
+                      MOST POPULAR
                     </span>
                   </div>
 
@@ -383,10 +374,10 @@ export default function LandingPage() {
                       <span className="text-4xl font-bold text-[#1c1917]">
                         $9.99
                       </span>
-                      <span className="text-xs text-[#79716b]">/bulan</span>
+                      <span className="text-xs text-[#79716b]">/month</span>
                     </div>
                     <p className="text-xs text-[#79716b] mt-3 leading-relaxed">
-                      Akses tak terbatas ke seluruh katalog buku, mode offline, dan audiobook.
+                      Unlimited catalog access, offline mode, and integrated audiobooks.
                     </p>
                   </div>
 
@@ -394,17 +385,17 @@ export default function LandingPage() {
 
                   <ul className="space-y-3.5 text-xs text-[#1c1917]">
                     {[
-                      "Lencana terverifikasi",
-                      "Custom warna latar belakang nama pengguna",
-                      "Akses katalog tanpa batas (10K+ judul)",
-                      "Lingkungan membaca bebas iklan",
-                      "Sinkronisasi hingga 3 perangkat",
-                      "Membaca buku secara offline",
-                      "Fitur anotasi, catatan, dan highlight",
-                      "Audiobook terintegrasi",
-                      "Tema membaca eksklusif",
-                      "Rekomendasi buku yang dipersonalisasi",
-                      "Prioritas akses ke koleksi buku terbaru",
+                      "Verified reader badge",
+                      "Custom username background accent",
+                      "Unlimited catalog access (10K+ titles)",
+                      "Completely ad-free reading environment",
+                      "Sync up to 3 devices simultaneously",
+                      "Offline reading with local downloads",
+                      "Full annotations, notes, and highlights",
+                      "Integrated high-fidelity audiobooks",
+                      "Exclusive reading themes",
+                      "Personalized book recommendations",
+                      "Priority access to new release collections",
                     ].map((feat, i) => (
                       <li key={i} className="flex items-start gap-2.5">
                         <Check
@@ -423,12 +414,12 @@ export default function LandingPage() {
                     href="/register"
                     className="w-full py-3 px-6 text-xs font-semibold rounded-full bg-[#8c695b] text-white hover:bg-[#7b594b] transition-colors shadow-sm flex items-center justify-center text-center"
                   >
-                    Mulai Uji Coba 14 Hari
+                    Start 14-Day Free Trial
                   </Link>
                   <p className="text-[11px] text-[#79716b] text-center">
-                    Sudah berlangganan?{" "}
+                    Already subscribed?{" "}
                     <Link href="/login" className="text-[#8c695b] font-semibold hover:underline">
-                      Login
+                      Log In
                     </Link>
                   </p>
                 </div>
@@ -443,10 +434,10 @@ export default function LandingPage() {
                       <span className="text-4xl font-bold text-[#1c1917]">
                         $19.99
                       </span>
-                      <span className="text-xs text-[#79716b]">/bulan</span>
+                      <span className="text-xs text-[#79716b]">/month</span>
                     </div>
                     <p className="text-xs text-[#79716b] mt-3 leading-relaxed">
-                      Pengalaman membaca terlengkap untuk penikmat literatur sejati & keluarga.
+                      The complete literary sanctuary designed for avid bibliophiles & families.
                     </p>
                   </div>
 
@@ -454,17 +445,17 @@ export default function LandingPage() {
 
                   <ul className="space-y-3.5 text-xs text-[#1c1917]">
                     {[
-                      "Semua benefit dari paket Reader",
-                      "Custom warna border foto profil",
-                      "Banner yang bisa di ubah sesuka hati",
-                      "Sinkronisasi perangkat tanpa batas",
-                      "Akses lebih awal ke koleksi eksklusif",
-                      "Dukungan prioritas untuk pengguna Premium",
-                      "Berbagi akses hingga 5 anggota keluarga",
-                      "Rekomendasi bacaan eksklusif setiap bulan",
-                      "Koleksi buku Premium eksklusif",
-                      "Badge Premium eksklusif di profil",
-                      "Pengalaman membaca tanpa batas dan bebas iklan",
+                      "All benefits from Reader plan",
+                      "Custom avatar photo border color",
+                      "Customizable profile banner",
+                      "Unlimited simultaneous device sync",
+                      "Early access to exclusive editions",
+                      "Priority support SLA for Premium users",
+                      "Family account sharing (up to 5 members)",
+                      "Personalized monthly curated spotlight",
+                      "Exclusive Premium book collection",
+                      "Exclusive Premium profile badge",
+                      "Limitless, completely ad-free experience",
                     ].map((feat, i) => (
                       <li key={i} className="flex items-start gap-2.5">
                         <Check
@@ -483,12 +474,12 @@ export default function LandingPage() {
                     href="/register"
                     className="w-full py-3 px-6 text-xs font-semibold rounded-full border border-[#8c695b] text-[#8c695b] hover:bg-[#f4efe6] transition-colors flex items-center justify-center text-center"
                   >
-                    Mulai Uji Coba 14 Hari
+                    Start 14-Day Free Trial
                   </Link>
                   <p className="text-[11px] text-[#79716b] text-center">
-                    Sudah punya akun?{" "}
+                    Already have an account?{" "}
                     <Link href="/login" className="text-[#8c695b] font-semibold hover:underline">
-                      Login
+                      Log In
                     </Link>
                   </p>
                 </div>
@@ -497,19 +488,19 @@ export default function LandingPage() {
           </PageContainer>
         </section>
 
-        {/* Section: Hubungi Kami */}
-        <section id="hubungi-kami" className="py-24">
+        {/* Section: Contact Us */}
+        <section id="contact-us" className="py-24">
           <PageContainer>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
               <div className="space-y-6">
                 <span className="text-xs font-bold uppercase tracking-widest text-[#8c695b]">
-                  Hubungi Kami
+                  Contact Us
                 </span>
                 <h2 className="text-3xl md:text-4xl font-serif font-bold text-[#1c1917] tracking-tight">
-                  Punya pertanyaan atau masukan untuk LIBRA?
+                  Have questions or feedback for LIBRA?
                 </h2>
                 <p className="text-sm text-[#79716b] leading-relaxed">
-                  Kami senang mendengar pengalaman membaca Anda, saran kurasi buku baru, atau kerja sama institusi pendidikan.
+                  We love hearing your reading reflections, curation recommendations, or academic partnership inquiries.
                 </p>
 
                 <div className="space-y-4 pt-4">
@@ -523,13 +514,13 @@ export default function LandingPage() {
                     <div className="w-10 h-10 rounded-xl bg-[#f4efe6] flex items-center justify-center text-[#8c695b] shrink-0">
                       <Phone size={18} />
                     </div>
-                    <span>+62 (021) 555-0198</span>
+                    <span>+1 (617) 555-0198</span>
                   </div>
                   <div className="flex items-center gap-4 text-sm text-[#1c1917]">
                     <div className="w-10 h-10 rounded-xl bg-[#f4efe6] flex items-center justify-center text-[#8c695b] shrink-0">
                       <MapPin size={18} />
                     </div>
-                    <span>Jakarta & Boston, Global Digital Sanctuary</span>
+                    <span>Boston & Global Digital Sanctuary</span>
                   </div>
                 </div>
               </div>
@@ -539,39 +530,39 @@ export default function LandingPage() {
                 <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
                   <div>
                     <label className="block text-xs font-semibold uppercase tracking-wider text-[#1c1917] mb-2">
-                      Nama Lengkap
+                      Full Name
                     </label>
                     <input
                       type="text"
-                      placeholder="Masukkan nama Anda"
+                      placeholder="Enter your name"
                       className="w-full px-4 py-3 text-sm rounded-xl border border-[#e6e0d6] bg-[#f9f6ef] text-[#1c1917] focus:outline-none focus:border-[#8c695b] transition-colors"
                     />
                   </div>
                   <div>
                     <label className="block text-xs font-semibold uppercase tracking-wider text-[#1c1917] mb-2">
-                      Alamat Email
+                      Email Address
                     </label>
                     <input
                       type="email"
-                      placeholder="nama@email.com"
+                      placeholder="name@email.com"
                       className="w-full px-4 py-3 text-sm rounded-xl border border-[#e6e0d6] bg-[#f9f6ef] text-[#1c1917] focus:outline-none focus:border-[#8c695b] transition-colors"
                     />
                   </div>
                   <div>
                     <label className="block text-xs font-semibold uppercase tracking-wider text-[#1c1917] mb-2">
-                      Pesan
+                      Message
                     </label>
                     <textarea
                       rows={4}
-                      placeholder="Tulis pesan atau pertanyaan Anda di sini..."
+                      placeholder="Write your note or question here..."
                       className="w-full px-4 py-3 text-sm rounded-xl border border-[#e6e0d6] bg-[#f9f6ef] text-[#1c1917] focus:outline-none focus:border-[#8c695b] transition-colors resize-none"
                     />
                   </div>
                   <button
                     type="submit"
-                    className="w-full py-3 px-6 text-sm font-semibold bg-[#8c695b] text-white rounded-full hover:bg-[#7b594b] transition-colors shadow-sm"
+                    className="w-full py-3 px-6 text-sm font-semibold bg-[#8c695b] text-white rounded-full hover:bg-[#7b594b] transition-colors shadow-sm cursor-pointer"
                   >
-                    Kirim Pesan
+                    Send Message
                   </button>
                 </form>
               </div>
