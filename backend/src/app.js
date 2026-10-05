@@ -99,6 +99,7 @@ const authenticateToken = (req, res, next) => {
   }
 };
 
+// Endpoint Register
 app.post("/api/v1/register", upload.single("img"), (req, res, next) => {
   if (req.file) {
     req.body.img = req.file.path;
@@ -121,6 +122,8 @@ app.post("/api/v1/register", upload.single("img"), (req, res, next) => {
   }
 );
 
+
+// Endpoint Login
 app.post("/api/v1/login", validate(Schema.login), async (req, res) => {
   const { email, pass } = req.body;
 
@@ -146,6 +149,8 @@ app.post("/api/v1/login", validate(Schema.login), async (req, res) => {
   }
 });
 
+
+// Endpoint Profile
 app.get("/api/v1/profile", authenticateToken, async (req, res) => {
   try {
     const [rows] = await pool.query(
