@@ -66,7 +66,7 @@ export default function RegisterPage() {
       formData.append("img", "/images/avatar.jpeg");
     }
 
-    const result = await registerUser(formData);
+    const result = await  registerUser(formData);
     if (!result.success) {
       setError(result.error ?? "Registration failed. Please try again.");
       setIsLoading(false);
