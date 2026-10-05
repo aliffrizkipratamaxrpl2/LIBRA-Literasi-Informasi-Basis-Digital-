@@ -70,6 +70,103 @@ export async function postBook(formData: FormData): Promise<{ success: boolean; 
   }
 }
 
+export interface AuthUser {
+  id: number | string;
+  email: string;
+  img?: string;
+  username?: string;
+}
+
+export interface AuthResult {
+  success: boolean;
+  token?: string;
+  message?: string;
+  error?: string;
+}
+
+function formatApiError(error: unknown, fallback: string): string {
+  if (typeof error === "string") return error;
+  if (Array.isArray(error)) {
+    const messages = error
+      .map((issue) => (issue?.message as string) || String(issue))
+      .filter(Boolean);
+    if (messages.length > 0) return messages.join(", ");
+  }
+  if (error && typeof error === "object" && "message" in error) {
+    const message = (error as { message?: unknown }).message;
+    if (typeof message === "string" && message) return message;
+  }
+  return fallback;
+}
+
+export async function loginUser(
+  email: string,
+  pass: string
+): Promise<AuthResult> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, pass }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      return {
+        success: false,
+        error: formatApiError(data.error, "Login failed. Please try again."),
+      };
+    }
+    return { success: true, token: data.token, message: data.message };
+  } catch {
+    return {
+      success: false,
+      error: "Cannot reach the API server. Please make sure the backend is running.",
+    };
+  }
+}
+
+export async function registerUser(
+  formData: FormData
+): Promise<AuthResult> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/register`, {
+      method: "POST",
+      body: formData,
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      return {
+        success: false,
+        error: formatApiError(data.error, "Registration failed. Please try again."),
+      };
+    }
+    return { success: true, message: data.message };
+  } catch {
+    return {
+      success: false,
+      error: "Cannot reach the API server. Please make sure the backend is running.",
+    };
+  }
+}
+
+export async function getProfile(
+  token: string
+): Promise<{ success: boolean; user?: AuthUser; error?: string }> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/profile`, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      return { success: false, error: formatApiError(data.error, "Failed to load profile") };
+    }
+    return { success: true, user: data.user };
+  } catch {
+    return { success: false, error: "Cannot reach the API server." };
+  }
+}
+
 export async function updateUserProfile(
   userId: string | number,
   formData: FormData,

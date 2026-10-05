@@ -12,6 +12,7 @@ interface NavbarProps {
 
 export default function Navbar({ variant = "public" }: NavbarProps) {
   const pathname = usePathname();
+  const isAuthed = variant === "authenticated";
 
   const landingLinks = [
     { href: "/", label: "Home" },
@@ -29,11 +30,24 @@ export default function Navbar({ variant = "public" }: NavbarProps) {
 
   const links = variant === "landing" ? landingLinks : appLinks;
 
+  const handleLogoClick = (e: React.MouseEvent) => {
+    if (isAuthed) {
+      // Stay on the authenticated dashboard / do not navigate away to public landing
+      if (pathname === "/home") {
+        e.preventDefault();
+      }
+    }
+  };
+
   return (
     <header className="w-full bg-[#f9f6ef] border-b border-[#eee9e0] sticky top-0 z-50">
       <PageContainer className="flex items-center justify-between h-20">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2.5">
+        <Link
+          href={isAuthed ? "/home" : "/"}
+          onClick={handleLogoClick}
+          className="flex items-center gap-2.5"
+        >
           <div className="w-9 h-9 rounded-xl bg-[#8c695b] flex items-center justify-center text-white shadow-sm">
             <BookOpen size={18} strokeWidth={2.2} />
           </div>
@@ -75,7 +89,7 @@ export default function Navbar({ variant = "public" }: NavbarProps) {
             </Link>
           )}
 
-          {variant === "authenticated" ? (
+          {isAuthed ? (
             <div className="flex items-center gap-4">
               <Link
                 href="/library"

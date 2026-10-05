@@ -8,6 +8,7 @@ import { Navbar, Footer, PageContainer } from "@/components/layout";
 import BookCard from "@/components/books/BookCard";
 import SectionHeader from "@/components/navigation/SectionHeader";
 import { getBooks, getCategories } from "@/lib/api";
+import { isLoggedIn } from "@/lib/auth";
 import { allCatalogBooks } from "@/data/mockBooks";
 import type { Book } from "@/types";
 import { Search, Flame, X } from "lucide-react";
@@ -58,6 +59,11 @@ export default function HomePage() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    if (!isLoggedIn()) {
+      router.replace("/login");
+      return;
+    }
+
     async function loadData() {
       setIsLoading(true);
       const [apiBooks, apiCats] = await Promise.all([
@@ -74,7 +80,7 @@ export default function HomePage() {
       setIsLoading(false);
     }
     loadData();
-  }, []);
+  }, [router]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();

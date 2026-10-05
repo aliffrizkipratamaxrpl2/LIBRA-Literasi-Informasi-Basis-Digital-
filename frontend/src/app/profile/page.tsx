@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Navbar, Footer, PageContainer } from "@/components/layout";
 import { updateUserProfile } from "@/lib/api";
+import { clearSession, getAuthUser, getToken, isLoggedIn } from "@/lib/auth";
 import { ChevronRight, CheckCircle2, AlertCircle } from "lucide-react";
 
 const allAvailableGenres = [
@@ -32,52 +33,57 @@ export default function ProfilePage() {
   const router = useRouter();
 
   // Profile info state
-  const [fullName, setFullName] = useState(
-    () => getLocalProfile()?.fullName || "Sarah Johnson"
-  );
-  const [email, setEmail] = useState(
-    () => getLocalProfile()?.email || "sarah.j@libra.com"
-  );
-  const [dob, setDob] = useState(
-    () => getLocalProfile()?.dob || "March 14, 1995"
-  );
-  const [location, setLocation] = useState(
-    () => getLocalProfile()?.location || "Boston, MA"
-  );
-  const [dailyGoal, setDailyGoal] = useState(
-    () => getLocalProfile()?.dailyGoal || "45 minutes"
-  );
+  const [fullName, setFullName] = useState("Sarah Johnson");
+  const [email, setEmail] = useState("sarah.j@libra.com");
+  const [dob, setDob] = useState("March 14, 1995");
+  const [location, setLocation] = useState("Boston, MA");
+  const [dailyGoal, setDailyGoal] = useState("45 minutes");
 
   // Notifications toggle state
-  const [dailyReminders, setDailyReminders] = useState(
-    () => getLocalProfile()?.dailyReminders ?? true
-  );
-  const [newBookAlerts, setNewBookAlerts] = useState(
-    () => getLocalProfile()?.newBookAlerts ?? true
-  );
-  const [weeklySummary, setWeeklySummary] = useState(
-    () => getLocalProfile()?.weeklySummary ?? false
-  );
+  const [dailyReminders, setDailyReminders] = useState(true);
+  const [newBookAlerts, setNewBookAlerts] = useState(true);
+  const [weeklySummary, setWeeklySummary] = useState(false);
 
   // Privacy toggles
-  const [publicProfile, setPublicProfile] = useState(
-    () => getLocalProfile()?.publicProfile ?? false
-  );
-  const [shareHistory, setShareHistory] = useState(
-    () => getLocalProfile()?.shareHistory ?? true
-  );
+  const [publicProfile, setPublicProfile] = useState(false);
+  const [shareHistory, setShareHistory] = useState(true);
 
   // Selected genres
-  const [favoriteGenres, setFavoriteGenres] = useState<string[]>(
-    () =>
-      getLocalProfile()?.favoriteGenres || [
-        "Fiction",
-        "Technology",
-        "History",
-        "Science",
-        "Self-Dev",
-      ]
-  );
+  const [favoriteGenres, setFavoriteGenres] = useState<string[]>([
+    "Fiction",
+    "Technology",
+    "History",
+    "Science",
+    "Self-Dev",
+  ]);
+
+  useEffect(() => {
+    if (!isLoggedIn()) {
+      router.replace("/login");
+      return;
+    }
+
+    const frame = requestAnimationFrame(() => {
+      const saved = getLocalProfile();
+      if (saved) {
+        if (saved.fullName) setFullName(saved.fullName);
+        if (saved.email) setEmail(saved.email);
+        if (saved.dob) setDob(saved.dob);
+        if (saved.location) setLocation(saved.location);
+        if (saved.dailyGoal) setDailyGoal(saved.dailyGoal);
+        if (typeof saved.dailyReminders === "boolean") setDailyReminders(saved.dailyReminders);
+        if (typeof saved.newBookAlerts === "boolean") setNewBookAlerts(saved.newBookAlerts);
+        if (typeof saved.weeklySummary === "boolean") setWeeklySummary(saved.weeklySummary);
+        if (typeof saved.publicProfile === "boolean") setPublicProfile(saved.publicProfile);
+        if (typeof saved.shareHistory === "boolean") setShareHistory(saved.shareHistory);
+        if (Array.isArray(saved.favoriteGenres) && saved.favoriteGenres.length > 0) {
+          setFavoriteGenres(saved.favoriteGenres);
+        }
+      }
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, [router]);
 
   // Save state
   const [isSaving, setIsSaving] = useState(false);
@@ -124,7 +130,12 @@ export default function ProfilePage() {
     formData.append("pass", "secret123"); // Required field in backend schema
     formData.append("img", "/images/avatar.jpeg");
 
-    const res = await updateUserProfile("1", formData);
+    const authUser = getAuthUser();
+    const res = await updateUserProfile(
+      authUser?.id ?? "1",
+      formData,
+      getToken() ?? undefined
+    );
     setIsSaving(false);
 
     // Persist to localStorage
@@ -165,6 +176,7 @@ export default function ProfilePage() {
   };
 
   const handleLogout = () => {
+    clearSession();
     router.push("/");
   };
 
