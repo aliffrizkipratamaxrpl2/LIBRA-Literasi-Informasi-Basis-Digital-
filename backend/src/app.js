@@ -121,28 +121,23 @@ const authenticateToken = (req, res, next) => {
   }
 };
 
-app.post("/subscriptions/:user_id/:plan_id", authenticateToken, validate(Schema.createSubscriptionSchema), async (req, res) => {
+app.post("/api/v1/saved/:users_id/:book_id", authenticateToken, async (req, res) => {
   try {
-      const { user_id, plan_id } = req.params;
-      const startDate = new Date();
-      const endDate = new Date();
-      endDate.setMonth(endDate.getMonth() + 1);
-      const status = "active";
-      const query = `INSERT INTO subscriptions (user_id, plan_id, status, start_date, end_date) VALUES (?, ?, ?, ?, ?) RETURNING *;`;
-      const values = [user_id, plan_id, status, startDate, endDate];
+    const { users_id, book_id } = req.params;
+    const query = `INSERT INTO saved (users_id, book_id) VALUES (?, ?);`;
+    const values = [users_id, book_id];
 
-      const result = await pool.query(query, values);
+    const data = await pool.query(query, values);
 
-      return res.status(201).json({
-        message: "Berhasil berlangganan selama 1 bulan",
-        data: result.rows[0],
-      });
-    } catch (error) {
-      console.error(error);
-      return res.status(500).json({ error: "Gagal membuat langganan" });
-    }
+    return res.status(201).json({
+      message: "Book saved!",
+      data: data.rows,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: "Failed to save book" });
   }
-);
+});
 
 app.listen(3000, () => {
   console.log("Server started on port 3000");
