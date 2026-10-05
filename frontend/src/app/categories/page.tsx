@@ -6,6 +6,7 @@ import { Navbar, Footer, PageContainer } from "@/components/layout";
 import BookCard from "@/components/books/BookCard";
 import SectionHeader from "@/components/navigation/SectionHeader";
 import { getCategories, getBooks } from "@/lib/api";
+import { getCategoryBookCount } from "@/data/mockBooks";
 import type { Book } from "@/types";
 import {
   BookOpen,
@@ -36,7 +37,7 @@ interface CategoryItem {
 const defaultCategories: CategoryItem[] = [
   {
     name: "Fiction",
-    count: "3,240 titles",
+    count: `${getCategoryBookCount("Fiction")} titles`,
     slug: "fiction",
     icon: BookOpen,
     iconBg: "bg-[#faeee9]",
@@ -44,7 +45,7 @@ const defaultCategories: CategoryItem[] = [
   },
   {
     name: "Romance",
-    count: "1,850 titles",
+    count: `${getCategoryBookCount("Romance")} titles`,
     slug: "romance",
     icon: Heart,
     iconBg: "bg-[#fcf1e5]",
@@ -52,7 +53,7 @@ const defaultCategories: CategoryItem[] = [
   },
   {
     name: "Mystery",
-    count: "1,210 titles",
+    count: `${getCategoryBookCount("Mystery")} titles`,
     slug: "mystery",
     icon: Eye,
     iconBg: "bg-[#f1edfb]",
@@ -60,7 +61,7 @@ const defaultCategories: CategoryItem[] = [
   },
   {
     name: "Fantasy",
-    count: "2,050 titles",
+    count: `${getCategoryBookCount("Fantasy")} titles`,
     slug: "fantasy",
     icon: Sparkles,
     iconBg: "bg-[#eaf5ea]",
@@ -68,7 +69,7 @@ const defaultCategories: CategoryItem[] = [
   },
   {
     name: "Science",
-    count: "980 titles",
+    count: `${getCategoryBookCount("Science")} titles`,
     slug: "science",
     icon: Globe,
     iconBg: "bg-[#e8f3fb]",
@@ -76,7 +77,7 @@ const defaultCategories: CategoryItem[] = [
   },
   {
     name: "Technology",
-    count: "1,150 titles",
+    count: `${getCategoryBookCount("Technology")} titles`,
     slug: "technology",
     icon: Cpu,
     iconBg: "bg-[#eef2f9]",
@@ -84,7 +85,7 @@ const defaultCategories: CategoryItem[] = [
   },
   {
     name: "History",
-    count: "1,420 titles",
+    count: `${getCategoryBookCount("History")} titles`,
     slug: "history",
     icon: Compass,
     iconBg: "bg-[#f7efe6]",
@@ -92,7 +93,7 @@ const defaultCategories: CategoryItem[] = [
   },
   {
     name: "Education",
-    count: "2,300 titles",
+    count: `${getCategoryBookCount("Education")} titles`,
     slug: "education",
     icon: GraduationCap,
     iconBg: "bg-[#eaf4f0]",
@@ -100,7 +101,7 @@ const defaultCategories: CategoryItem[] = [
   },
   {
     name: "Psychology",
-    count: "1,670 titles",
+    count: `${getCategoryBookCount("Psychology")} titles`,
     slug: "psychology",
     icon: Brain,
     iconBg: "bg-[#faebee]",
@@ -108,7 +109,7 @@ const defaultCategories: CategoryItem[] = [
   },
   {
     name: "Self Development",
-    count: "2,100 titles",
+    count: `${getCategoryBookCount("Self Development")} titles`,
     slug: "self-development",
     icon: Activity,
     iconBg: "bg-[#fdf4e7]",
@@ -116,7 +117,7 @@ const defaultCategories: CategoryItem[] = [
   },
   {
     name: "Biography",
-    count: "1,340 titles",
+    count: `${getCategoryBookCount("Biography")} titles`,
     slug: "biography",
     icon: User,
     iconBg: "bg-[#e8f6f3]",
@@ -124,7 +125,7 @@ const defaultCategories: CategoryItem[] = [
   },
   {
     name: "Art",
-    count: "890 titles",
+    count: `${getCategoryBookCount("Art")} titles`,
     slug: "art",
     icon: Feather,
     iconBg: "bg-[#faeef2]",
@@ -188,21 +189,26 @@ export default function CategoriesPage() {
         getBooks(),
       ]);
 
-      if (catsData && catsData.length > 0) {
-        const mapped: CategoryItem[] = catsData.map((c, i) => {
-          const fallback = defaultCategories[i % defaultCategories.length];
-          return {
-            id: c.id,
-            name: c.category,
-            count: fallback.count,
-            slug: c.category.toLowerCase().replace(/\s+/g, "-"),
-            icon: fallback.icon,
-            iconBg: fallback.iconBg,
-            iconColor: fallback.iconColor,
-          };
-        });
-        setCategories(mapped);
-      }
+      const sourceList = catsData && catsData.length > 0 ? catsData : defaultCategories.map((d) => ({ id: d.id, category: d.name }));
+      const booksList = booksData || [];
+
+      const mapped: CategoryItem[] = sourceList.map((c, i) => {
+        const fallback = defaultCategories[i % defaultCategories.length];
+        const categoryName = c.category;
+        const totalTitles = getCategoryBookCount(categoryName, booksList);
+        const countLabel = `${totalTitles} ${totalTitles === 1 ? "title" : "titles"}`;
+
+        return {
+          id: c.id,
+          name: categoryName,
+          count: countLabel,
+          slug: categoryName.toLowerCase().replace(/\s+/g, "-"),
+          icon: fallback.icon,
+          iconBg: fallback.iconBg,
+          iconColor: fallback.iconColor,
+        };
+      });
+      setCategories(mapped);
 
       if (booksData && booksData.length > 0) {
         const fictionBooks = booksData.filter(
@@ -283,11 +289,7 @@ export default function CategoriesPage() {
                 {popularInFiction.map((book) => (
                   <BookCard
                     key={book.id}
-                    id={book.id}
-                    title={book.title}
-                    author={book.author}
-                    rating={book.rating ?? 4.8}
-                    cover={book.cover || "/images/books/echo-of-silence.jpeg"}
+                    book={book}
                   />
                 ))}
               </div>

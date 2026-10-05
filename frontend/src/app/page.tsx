@@ -5,6 +5,7 @@ import { Navbar, Footer, PageContainer } from "@/components/layout";
 import BookCard from "@/components/books/BookCard";
 import SectionHeader from "@/components/navigation/SectionHeader";
 import { getBooks, getCategories } from "@/lib/api";
+import { getCategoryBookCount, allCatalogBooks } from "@/data/mockBooks";
 import type { Book } from "@/types";
 import Image from "next/image";
 import Link from "next/link";
@@ -29,33 +30,27 @@ import {
   Check,
 } from "lucide-react";
 
-const trendingBooks = [
-  { id: "echo-of-silence", title: "The Echo of Silence", author: "Marcia Sterling", rating: 4.8, cover: "/images/books/echo-of-silence.jpeg" },
-  { id: "beyond-the-grid", title: "Beyond the Grid", author: "Klaus Van Der Meer", rating: 4.9, cover: "/images/books/beyond-the-grid.jpeg" },
-  { id: "midsummer-wanderlust", title: "Midsummer Wanderlust", author: "Celia Harlow", rating: 4.6, cover: "/images/books/midsummer-wanderlust.jpeg" },
-  { id: "algorithms-of-joy", title: "The Algorithms of Joy", author: "Dr. Arthur Pendelton", rating: 4.7, cover: "/images/books/algorithms-of-joy.jpeg" },
-  { id: "contours-of-memory", title: "Contours of Memory", author: "Siddharth Mehta", rating: 4.5, cover: "/images/books/contours-of-memory.jpeg" },
-  { id: "echoes-of-renaissance", title: "Echoes of the Renaissance", author: "Elena Rostova", rating: 4.8, cover: "/images/books/echoes-of-renaissance.jpeg" },
-];
+const allBooksMapped: Book[] = allCatalogBooks.map((b) => ({
+  id: b.id,
+  title: b.title,
+  author: b.author,
+  rating: b.rating,
+  category: b.categories[0],
+  cover: b.cover,
+}));
 
-const recentlyAdded = [
-  { id: "algorithms-of-joy", title: "The Algorithms of Joy", author: "Dr. Arthur Pendelton", rating: 4.7, cover: "/images/books/algorithms-of-joy.jpeg" },
-  { id: "contours-of-memory", title: "Contours of Memory", author: "Siddharth Mehta", rating: 4.5, cover: "/images/books/contours-of-memory.jpeg" },
-  { id: "echoes-of-renaissance", title: "Echoes of the Renaissance", author: "Elena Rostova", rating: 4.8, cover: "/images/books/echoes-of-renaissance.jpeg" },
-  { id: "echo-of-silence", title: "The Echo of Silence", author: "Marcia Sterling", rating: 4.8, cover: "/images/books/echo-of-silence.jpeg" },
-  { id: "beyond-the-grid", title: "Beyond the Grid", author: "Klaus Van Der Meer", rating: 4.9, cover: "/images/books/beyond-the-grid.jpeg" },
-  { id: "midsummer-wanderlust", title: "Midsummer Wanderlust", author: "Celia Harlow", rating: 4.6, cover: "/images/books/midsummer-wanderlust.jpeg" },
-];
+const trendingBooks = allBooksMapped.slice(0, 6);
+const recentlyAdded = [...allBooksMapped].reverse().slice(0, 6);
 
 const categories = [
-  { name: "Fiction", count: "3,240", icon: Sparkles },
-  { name: "Romance", count: "1,850", icon: Heart },
-  { name: "Mystery", count: "1,210", icon: Search },
-  { name: "Science", count: "980", icon: FlaskConical },
-  { name: "Technology", count: "1,150", icon: Cpu },
-  { name: "History", count: "1,420", icon: Landmark },
-  { name: "Self-Development", count: "2,100", icon: TrendingUp },
-  { name: "Art", count: "890", icon: Palette },
+  { name: "Fiction", count: `${getCategoryBookCount("Fiction")}`, icon: Sparkles },
+  { name: "Romance", count: `${getCategoryBookCount("Romance")}`, icon: Heart },
+  { name: "Mystery", count: `${getCategoryBookCount("Mystery")}`, icon: Search },
+  { name: "Science", count: `${getCategoryBookCount("Science")}`, icon: FlaskConical },
+  { name: "Technology", count: `${getCategoryBookCount("Technology")}`, icon: Cpu },
+  { name: "History", count: `${getCategoryBookCount("History")}`, icon: Landmark },
+  { name: "Self-Development", count: `${getCategoryBookCount("Self-Development")}`, icon: TrendingUp },
+  { name: "Art", count: `${getCategoryBookCount("Art")}`, icon: Palette },
 ];
 
 const stats = [
@@ -73,21 +68,25 @@ export default function LandingPage() {
   useEffect(() => {
     async function loadData() {
       const [apiBooks, apiCats] = await Promise.all([getBooks(), getCategories()]);
+      const bookList = apiBooks || [];
+
       if (apiBooks && apiBooks.length > 0) {
         setTrending(apiBooks.slice(0, 6));
         setRecent([...apiBooks].reverse().slice(0, 6));
       }
-      if (apiCats && apiCats.length > 0) {
-        const mapped = apiCats.map((c, i) => {
-          const fallback = categories[i % categories.length];
-          return {
-            name: c.category,
-            count: fallback.count,
-            icon: fallback.icon,
-          };
-        });
-        setCategoryList(mapped);
-      }
+
+      const sourceCats = apiCats && apiCats.length > 0 ? apiCats : categories.map((c) => ({ category: c.name }));
+      const mapped = sourceCats.map((c, i) => {
+        const fallback = categories[i % categories.length];
+        const categoryName = c.category;
+        const total = getCategoryBookCount(categoryName, bookList);
+        return {
+          name: categoryName,
+          count: String(total),
+          icon: fallback.icon,
+        };
+      });
+      setCategoryList(mapped);
     }
     loadData();
   }, []);
@@ -183,11 +182,7 @@ export default function LandingPage() {
               {trending.map((book) => (
                 <BookCard
                   key={book.id}
-                  id={book.id}
-                  title={book.title}
-                  author={book.author}
-                  rating={book.rating ?? 4.8}
-                  cover={book.cover || "/images/books/echo-of-silence.jpeg"}
+                  book={book}
                 />
               ))}
             </div>
@@ -239,11 +234,7 @@ export default function LandingPage() {
               {recent.map((book, i) => (
                 <BookCard
                   key={`${book.id}-${i}`}
-                  id={book.id}
-                  title={book.title}
-                  author={book.author}
-                  rating={book.rating ?? 4.8}
-                  cover={book.cover || "/images/books/echo-of-silence.jpeg"}
+                  book={book}
                 />
               ))}
             </div>

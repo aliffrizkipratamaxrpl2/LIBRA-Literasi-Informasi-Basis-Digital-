@@ -383,11 +383,7 @@ export default function BookDetailPage({
                 {relatedBooks.map((b) => (
                   <BookCard
                     key={b.id}
-                    id={b.id}
-                    title={b.title}
-                    author={b.author}
-                    rating={b.rating ?? 4.8}
-                    cover={b.cover || "/images/books/echo-of-silence.jpeg"}
+                    book={b}
                   />
                 ))}
               </div>
