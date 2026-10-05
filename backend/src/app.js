@@ -46,6 +46,13 @@ const requiredString = (fieldName, maxLen) => {
   return schema;
 };
 
+const injectFile = (req, res, next) => {
+  if (req.file) {
+    req.body.img = req.file.path;
+  }
+  next();
+};
+
 export const Schema = {
   users: z.object({
     username: requiredString("username", 15),
