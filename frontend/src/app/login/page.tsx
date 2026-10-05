@@ -14,6 +14,8 @@ import {
   Star,
   Quote,
 } from "lucide-react";
+import { getProfile, loginUser } from "@/lib/api";
+import { displayNameFromEmail, saveSession, writeDisplayProfile } from "@/lib/auth";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -22,34 +24,39 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
     setIsLoading(true);
 
-    try {
-      const username = email.split("@")[0] || "Khall Myaw";
-      const userProfile = {
-        fullName: username.charAt(0).toUpperCase() + username.slice(1),
-        email: email,
-        dob: "March 14, 1995",
-        location: "Boston, MA",
-        dailyGoal: "45 minutes",
-        favoriteGenres: ["Fiction", "Technology", "History"],
-        dailyReminders: true,
-        newBookAlerts: true,
-        weeklySummary: false,
-        publicProfile: false,
-        shareHistory: true,
-      };
-      localStorage.setItem("libra_user_profile", JSON.stringify(userProfile));
-    } catch {
-      // LocalStorage fallback
+    const trimmedEmail = email.trim();
+    const result = await loginUser(trimmedEmail, password);
+
+    if (!result.success || !result.token) {
+      setError(result.error ?? "Login failed. Please try again.");
+      setIsLoading(false);
+      return;
     }
 
-    setTimeout(() => {
-      router.push("/home");
-    }, 400);
+    const profileResult = await getProfile(result.token);
+    const user = profileResult.user;
+
+    saveSession(result.token, user, rememberMe);
+    writeDisplayProfile({
+      fullName:
+        user?.username || displayNameFromEmail(user?.email ?? trimmedEmail),
+      email: user?.email ?? trimmedEmail,
+    });
+
+    router.push("/home");
+  };
+
+  const handleSocialLogin = () => {
+    setError(
+      "Social sign-in is not available yet. Please sign in with your email and password."
+    );
   };
 
   return (
@@ -97,6 +104,15 @@ export default function LoginPage() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            {error && (
+              <div
+                role="alert"
+                className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-medium text-red-600"
+              >
+                {error}
+              </div>
+            )}
+
             <div>
               <label
                 htmlFor="email"
@@ -191,7 +207,7 @@ export default function LoginPage() {
           <div className="grid grid-cols-2 gap-3">
             <button
               type="button"
-              onClick={() => router.push("/home")}
+              onClick={handleSocialLogin}
               className="flex items-center justify-center gap-2.5 py-2.5 px-4 rounded-2xl border border-[#e6e0d6] bg-white text-xs font-semibold text-[#1c1917] hover:bg-[#f4efe6] transition-all shadow-2xs"
             >
               <svg className="w-4 h-4" viewBox="0 0 24 24">
@@ -217,7 +233,7 @@ export default function LoginPage() {
 
             <button
               type="button"
-              onClick={() => router.push("/home")}
+              onClick={handleSocialLogin}
               className="flex items-center justify-center gap-2.5 py-2.5 px-4 rounded-2xl border border-[#e6e0d6] bg-white text-xs font-semibold text-[#1c1917] hover:bg-[#f4efe6] transition-all shadow-2xs"
             >
               <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">

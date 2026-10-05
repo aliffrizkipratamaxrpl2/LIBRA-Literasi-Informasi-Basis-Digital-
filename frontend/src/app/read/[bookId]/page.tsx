@@ -58,31 +58,35 @@ export default function ReaderPage({
   });
   const [coverUrl, setCoverUrl] = useState(initialBook.cover);
 
-  // Reader Preferences State with lazy local storage initializer
-  const [theme, setTheme] = useState<ReaderTheme>(
-    () => getStoredPreferences().theme || "light"
-  );
-  const [fontFamily, setFontFamily] = useState<FontOption>(
-    () => getStoredPreferences().fontFamily || "serif"
-  );
-  const [fontSize, setFontSize] = useState<number>(
-    () => getStoredPreferences().fontSize || 20
-  );
-  const [lineSpacing, setLineSpacing] = useState<LineSpacing>(
-    () => getStoredPreferences().lineSpacing || "comfortable"
-  );
-  const [brightness, setBrightness] = useState<number>(
-    () => getStoredPreferences().brightness || 80
-  );
+  // Reader Preferences State with stable defaults (hydrated in useEffect)
+  const [theme, setTheme] = useState<ReaderTheme>("light");
+  const [fontFamily, setFontFamily] = useState<FontOption>("serif");
+  const [fontSize, setFontSize] = useState<number>(20);
+  const [lineSpacing, setLineSpacing] = useState<LineSpacing>("comfortable");
+  const [brightness, setBrightness] = useState<number>(80);
 
   // UI state
   const [showSettings, setShowSettings] = useState<boolean>(true);
-  const [isBookmarked, setIsBookmarked] = useState<boolean>(() =>
-    isBookSaved(bookId)
-  );
+  const [isBookmarked, setIsBookmarked] = useState<boolean>(false);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const totalPages = Math.max(12, paragraphs.length * 4);
   const progressPercent = Math.min(100, Math.round((currentPage / totalPages) * 100));
+
+  // Hydrate stored preferences & bookmark state on client mount
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      const prefs = getStoredPreferences();
+      if (prefs.theme) setTheme(prefs.theme);
+      if (prefs.fontFamily) setFontFamily(prefs.fontFamily);
+      if (typeof prefs.fontSize === "number") setFontSize(prefs.fontSize);
+      if (prefs.lineSpacing) setLineSpacing(prefs.lineSpacing);
+      if (typeof prefs.brightness === "number") setBrightness(prefs.brightness);
+
+      setIsBookmarked(isBookSaved(bookId));
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, [bookId]);
 
   // Sync bookmark state across app
   useEffect(() => {

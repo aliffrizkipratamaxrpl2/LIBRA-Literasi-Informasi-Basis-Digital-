@@ -1,11 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { Navbar, Footer, PageContainer } from "@/components/layout";
 import { getPlans } from "@/lib/api";
 import type { BackendPlan } from "@/types";
-import { Check, Plus, Minus } from "lucide-react";
+import { Check, Plus, Minus, CheckCircle2 } from "lucide-react";
 
 interface FaqItem {
   id: string;
@@ -197,6 +196,8 @@ const comparisonRows = [
 export default function PricingPage() {
   const [plans, setPlans] = useState<PlanCardData[]>(defaultPlans);
   const [openFaq, setOpenFaq] = useState<string | null>("faq-1");
+  const [activePlanId, setActivePlanId] = useState<string | number>("reader");
+  const [subscriptionFeedback, setSubscriptionFeedback] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -221,6 +222,14 @@ export default function PricingPage() {
     load();
   }, []);
 
+  const handleSelectPlan = (plan: PlanCardData) => {
+    setActivePlanId(plan.id);
+    setSubscriptionFeedback(`You are now on the ${plan.name} reading plan!`);
+    setTimeout(() => {
+      setSubscriptionFeedback(null);
+    }, 4000);
+  };
+
   const toggleFaq = (id: string) => {
     setOpenFaq((prev) => (prev === id ? null : id));
   };
@@ -240,75 +249,88 @@ export default function PricingPage() {
               Unlock endless literary journeys tailored beautifully to your
               reading style and active devices.
             </p>
+
+            {subscriptionFeedback && (
+              <div className="inline-flex items-center gap-2.5 px-5 py-2.5 rounded-full bg-[#eaf4f0] text-[#2d7a4f] text-xs font-semibold border border-[#c2e4d4] shadow-2xs mt-4">
+                <CheckCircle2 size={16} />
+                <span>{subscriptionFeedback}</span>
+              </div>
+            )}
           </div>
 
           {/* Pricing Cards Grid */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch mb-28 max-w-6xl mx-auto">
-            {plans.map((plan) => (
-              <div
-                key={plan.id}
-                className={`bg-white rounded-3xl p-8 flex flex-col justify-between transition-all ${
-                  plan.popular
-                    ? "border-2 border-[#8c695b] shadow-md relative"
-                    : "border border-[#e6e0d6] shadow-xs hover:shadow-md"
-                }`}
-              >
-                <div className="space-y-6">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-bold text-[#1c1917]">
-                      {plan.name}
-                    </h3>
-                    {plan.popular && (
-                      <span className="px-3 py-1 rounded-full bg-[#f4efe6] text-[#8c695b] text-[10px] font-bold tracking-wider uppercase border border-[#8c695b]/20">
-                        MOST POPULAR
-                      </span>
-                    )}
-                  </div>
-
-                  <div>
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-4xl font-bold text-[#1c1917]">
-                        ${plan.price === 0 ? "0" : plan.price.toFixed(2)}
-                      </span>
-                      <span className="text-xs text-[#79716b]">
-                        {plan.period}
-                      </span>
+            {plans.map((plan) => {
+              const isCurrent = activePlanId === plan.id;
+              return (
+                <div
+                  key={plan.id}
+                  className={`bg-white rounded-3xl p-8 flex flex-col justify-between transition-all ${
+                    plan.popular
+                      ? "border-2 border-[#8c695b] shadow-md relative"
+                      : "border border-[#e6e0d6] shadow-xs hover:shadow-md"
+                  }`}
+                >
+                  <div className="space-y-6">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-bold text-[#1c1917]">
+                        {plan.name}
+                      </h3>
+                      {plan.popular && (
+                        <span className="px-3 py-1 rounded-full bg-[#f4efe6] text-[#8c695b] text-[10px] font-bold tracking-wider uppercase border border-[#8c695b]/20">
+                          MOST POPULAR
+                        </span>
+                      )}
                     </div>
-                    <p className="text-xs text-[#79716b] mt-3 leading-relaxed">
-                      {plan.description}
-                    </p>
+
+                    <div>
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-4xl font-bold text-[#1c1917]">
+                          ${plan.price === 0 ? "0" : plan.price.toFixed(2)}
+                        </span>
+                        <span className="text-xs text-[#79716b]">
+                          {plan.period}
+                        </span>
+                      </div>
+                      <p className="text-xs text-[#79716b] mt-3 leading-relaxed">
+                        {plan.description}
+                      </p>
+                    </div>
+
+                    <div className="border-t border-[#e6e0d6]" />
+
+                    <ul className="space-y-3.5 text-xs text-[#1c1917]">
+                      {plan.features.map((feat, i) => (
+                        <li key={i} className="flex items-start gap-2.5">
+                          <Check
+                            size={15}
+                            className="text-[#8c695b] shrink-0 mt-0.5"
+                            strokeWidth={2.5}
+                          />
+                          <span>{feat}</span>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
 
-                  <div className="border-t border-[#e6e0d6]" />
-
-                  <ul className="space-y-3.5 text-xs text-[#1c1917]">
-                    {plan.features.map((feat, i) => (
-                      <li key={i} className="flex items-start gap-2.5">
-                        <Check
-                          size={15}
-                          className="text-[#8c695b] shrink-0 mt-0.5"
-                          strokeWidth={2.5}
-                        />
-                        <span>{feat}</span>
-                      </li>
-                    ))}
-                  </ul>
+                  <div className="pt-8">
+                    <button
+                      type="button"
+                      onClick={() => handleSelectPlan(plan)}
+                      className={`w-full py-3 px-6 text-xs font-semibold rounded-full transition-colors flex items-center justify-center text-center cursor-pointer ${
+                        isCurrent
+                          ? "bg-[#6b564b] text-white shadow-sm"
+                          : plan.popular
+                          ? "bg-[#8c695b] text-white hover:bg-[#7b594b] shadow-sm"
+                          : "border border-[#8c695b] text-[#8c695b] hover:bg-[#f4efe6]"
+                      }`}
+                    >
+                      {isCurrent ? "Current Active Plan" : plan.cta}
+                    </button>
+                  </div>
                 </div>
-
-                <div className="pt-8">
-                  <Link
-                    href="/register"
-                    className={`w-full py-3 px-6 text-xs font-semibold rounded-full transition-colors flex items-center justify-center text-center ${
-                      plan.popular
-                        ? "bg-[#8c695b] text-white hover:bg-[#7b594b] shadow-sm"
-                        : "border border-[#8c695b] text-[#8c695b] hover:bg-[#f4efe6]"
-                    }`}
-                  >
-                    {plan.cta}
-                  </Link>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* Comparison Table Section */}

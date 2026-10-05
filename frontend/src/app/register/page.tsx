@@ -14,6 +14,8 @@ import {
   ShieldCheck,
   Compass,
 } from "lucide-react";
+import { getProfile, loginUser, registerUser } from "@/lib/api";
+import { saveSession, writeDisplayProfile } from "@/lib/auth";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -21,35 +23,75 @@ export default function RegisterPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [avatar, setAvatar] = useState<File | null>(null);
   const [agreeTerms, setAgreeTerms] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    setError(null);
+    if (!file) {
+      setAvatar(null);
+      return;
+    }
+    if (!file.type.startsWith("image/")) {
+      setError("Profile photo must be an image file.");
+      e.target.value = "";
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      setError("Profile photo must be smaller than 2 MB.");
+      e.target.value = "";
+      return;
+    }
+    setAvatar(file);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
     setIsLoading(true);
 
-    try {
-      const userProfile = {
-        fullName: name.trim().slice(0, 15) || "Khall Myaw",
-        email: email.trim(),
-        dob: "March 14, 1995",
-        location: "Boston, MA",
-        dailyGoal: "45 minutes",
-        favoriteGenres: ["Fiction", "Technology", "History"],
-        dailyReminders: true,
-        newBookAlerts: true,
-        weeklySummary: false,
-        publicProfile: false,
-        shareHistory: true,
-      };
-      localStorage.setItem("libra_user_profile", JSON.stringify(userProfile));
-    } catch {
-      // LocalStorage fallback
+    const trimmedName = name.trim();
+    const trimmedEmail = email.trim();
+
+    const formData = new FormData();
+    formData.append("username", trimmedName);
+    formData.append("email", trimmedEmail);
+    formData.append("pass", password);
+    if (avatar) {
+      formData.append("img", avatar);
+    } else {
+      formData.append("img", "/images/avatar.jpeg");
     }
 
-    setTimeout(() => {
-      router.push("/home");
-    }, 400);
+    const result = await registerUser(formData);
+    if (!result.success) {
+      setError(result.error ?? "Registration failed. Please try again.");
+      setIsLoading(false);
+      return;
+    }
+
+    const loginResult = await loginUser(trimmedEmail, password);
+    if (!loginResult.success || !loginResult.token) {
+      router.push("/login");
+      return;
+    }
+
+    const profileResult = await getProfile(loginResult.token);
+    const user = profileResult.user;
+
+    saveSession(loginResult.token, user, true);
+    writeDisplayProfile({ fullName: trimmedName, email: trimmedEmail });
+
+    router.push("/home");
+  };
+
+  const handleSocialRegister = () => {
+    setError(
+      "Social sign-up is not available yet. Please create your account with email and password."
+    );
   };
 
   return (
@@ -97,6 +139,15 @@ export default function RegisterPage() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            {error && (
+              <div
+                role="alert"
+                className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-medium text-red-600"
+              >
+                {error}
+              </div>
+            )}
+
             <div>
               <div className="flex justify-between items-center mb-1.5">
                 <label
@@ -167,6 +218,32 @@ export default function RegisterPage() {
               </div>
             </div>
 
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label
+                  htmlFor="avatar"
+                  className="block text-xs font-semibold uppercase tracking-wider text-[#1c1917]"
+                >
+                  Profile Photo
+                </label>
+                <span className="text-[10px] text-[#a8a29e] font-medium">
+                  Optional &bull; Max 2 MB
+                </span>
+              </div>
+              <input
+                id="avatar"
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                onChange={handleAvatarChange}
+                className="w-full text-xs text-[#79716b] file:mr-3 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-[#f4efe6] file:text-[#8c695b] hover:file:bg-[#ebe3d7] cursor-pointer"
+              />
+              {avatar && (
+                <p className="text-[11px] text-[#8c695b] mt-1.5 font-medium">
+                  Selected: {avatar.name}
+                </p>
+              )}
+            </div>
+
             <div className="flex items-start gap-2.5 pt-1">
               <input
                 id="agreeTerms"
@@ -221,7 +298,7 @@ export default function RegisterPage() {
           <div className="grid grid-cols-2 gap-3">
             <button
               type="button"
-              onClick={() => router.push("/home")}
+              onClick={handleSocialRegister}
               className="flex items-center justify-center gap-2.5 py-2.5 px-4 rounded-2xl border border-[#e6e0d6] bg-white text-xs font-semibold text-[#1c1917] hover:bg-[#f4efe6] transition-all shadow-2xs"
             >
               <svg className="w-4 h-4" viewBox="0 0 24 24">
@@ -247,7 +324,7 @@ export default function RegisterPage() {
 
             <button
               type="button"
-              onClick={() => router.push("/home")}
+              onClick={handleSocialRegister}
               className="flex items-center justify-center gap-2.5 py-2.5 px-4 rounded-2xl border border-[#e6e0d6] bg-white text-xs font-semibold text-[#1c1917] hover:bg-[#f4efe6] transition-all shadow-2xs"
             >
               <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">

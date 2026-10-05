@@ -1,12 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useSyncExternalStore } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Navbar, Footer, PageContainer } from "@/components/layout";
 import BookCard from "@/components/books/BookCard";
-import { getSavedBooks, subscribeSavedBooks } from "@/lib/savedBooks";
-import type { Book } from "@/types";
+import { getSavedBooks, subscribeSavedBooks, initialDefaultSaved } from "@/lib/savedBooks";
 import { LayoutGrid, List, CheckCircle2, Bookmark } from "lucide-react";
 
 type LibraryTab = "All" | "Currently Reading" | "Saved" | "Completed";
@@ -36,40 +35,14 @@ const currentlyReadingBooks = [
   },
 ];
 
-const defaultSavedBooks: Book[] = [
-  {
-    id: "echo-of-silence",
-    title: "The Echo of Silence",
-    author: "Marcia Sterling",
-    rating: 4.8,
-    cover: "/images/books/echo-of-silence.jpeg",
-  },
-  {
-    id: "algorithms-of-joy",
-    title: "The Algorithms of Joy",
-    author: "Dr. Arthur Pendelton",
-    rating: 4.7,
-    cover: "/images/books/algorithms-of-joy.jpeg",
-  },
-];
-
 export default function LibraryPage() {
   const [activeTab, setActiveTab] = useState<LibraryTab>("Currently Reading");
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
-  const [savedBooks, setSavedBooks] = useState<Book[]>(() => {
-    const stored = getSavedBooks();
-    return stored.length > 0 ? stored : defaultSavedBooks;
-  });
-
-  useEffect(() => {
-    // Subscribe to real-time additions/removals
-    const unsubscribe = subscribeSavedBooks(() => {
-      const updated = getSavedBooks();
-      setSavedBooks(updated.length > 0 ? updated : defaultSavedBooks);
-    });
-
-    return unsubscribe;
-  }, []);
+  const savedBooks = useSyncExternalStore(
+    subscribeSavedBooks,
+    getSavedBooks,
+    () => initialDefaultSaved
+  );
 
   const showCurrentlyReading =
     activeTab === "All" || activeTab === "Currently Reading";
